@@ -96,14 +96,24 @@ class _HomepageScreenState extends State<HomepageScreen> {
           councilName = user['council_name']?.toString() ?? 'Council';
         });
 
-        // If role is INSPECTOR, load assignment statistics
-        if (role == 'INSPECTOR') {
+        // Load appropriate data based on role
+        if (_isInspectorRole()) {
           _loadInspectorData();
         }
       }
     } catch (e) {
       debugPrint('Error loading user profile: $e');
     }
+  }
+
+  // Helper method to check if user is an inspector
+  bool _isInspectorRole() {
+    return role == 'LICENSING_INSPECTOR' || role == 'INSPECTOR';
+  }
+
+  // Helper method to check if user is a revenue collector
+  bool _isRevenueCollectorRole() {
+    return role == 'REVENUE_COLLECTOR';
   }
 
   Future<void> _loadInspectorData() async {
@@ -317,9 +327,9 @@ class _HomepageScreenState extends State<HomepageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // For demo purposes, hardcode role to INSPECTOR
-    // In production, use: final userRole = role;
-    final userRole = 'INSPECTOR'; // Change to 'REVENUE_COLLECTOR' to test revenue view
+    // Determine which view to show based on user role
+    final bool showInspectorView = _isInspectorRole();
+    final bool showRevenueView = _isRevenueCollectorRole();
 
     return Scaffold(
       backgroundColor: kBg,
@@ -351,9 +361,11 @@ class _HomepageScreenState extends State<HomepageScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: userRole == 'INSPECTOR'
+        child: showInspectorView
             ? _buildInspectorView()
-            : _buildRevenueCollectorView(),
+            : showRevenueView
+            ? _buildRevenueCollectorView()
+            : _buildDefaultView(), // Fallback for unknown roles
       ),
     );
   }
@@ -384,7 +396,7 @@ class _HomepageScreenState extends State<HomepageScreen> {
                 children: [
                   _InspectorProfileCard(
                     fullName: fullName,
-                    role: role,
+                    role: 'Licensing Inspector',
                     email: email,
                     councilName: councilName,
                   ),
@@ -516,6 +528,55 @@ class _HomepageScreenState extends State<HomepageScreen> {
   }
 
   // ===========================================================================
+  // DEFAULT VIEW (for unknown roles)
+  // ===========================================================================
+
+  Widget _buildDefaultView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 64,
+            color: Colors.orange,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Unauthorized Access',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: kText,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your role ($role) does not have access to this application.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: kMuted,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              // Logout and go to login screen
+              Get.offAllNamed(AppRoutes.loginScreen);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Go to Login'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
   // UI Helper Widgets
   // ===========================================================================
 
@@ -634,7 +695,7 @@ class _InspectorProfileCard extends StatelessWidget {
               children: [
                 Text(fullName, style: const TextStyle(color: kText, fontWeight: FontWeight.w900, fontSize: 16), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text("Inspector", style: const TextStyle(color: kPrimaryGreen, fontWeight: FontWeight.w700, fontSize: 13)),
+                Text(role, style: const TextStyle(color: kPrimaryGreen, fontWeight: FontWeight.w700, fontSize: 13)),
                 const SizedBox(height: 2),
                 Text(councilName, style: TextStyle(color: kMuted, fontWeight: FontWeight.w600, fontSize: 12)),
                 const SizedBox(height: 2),
@@ -808,7 +869,6 @@ class _RecentInspectionRow extends StatelessWidget {
   static const Color kBorder = Color(0xFFE5E7EB);
 
   void _navigateToChecklist(BuildContext context) {
-    // Navigate directly to the ChecklistScreen with the assignment
     Get.to(() => ChecklistScreen(assignment: assignment));
   }
 
@@ -823,7 +883,6 @@ class _RecentInspectionRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Status badge moved to the left
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -848,7 +907,6 @@ class _RecentInspectionRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Icon
             Container(
               width: 40,
               height: 40,
@@ -859,7 +917,6 @@ class _RecentInspectionRow extends StatelessWidget {
               child: Icon(Icons.business_center, size: 20, color: kPrimaryGreen),
             ),
             const SizedBox(width: 12),
-            // Business info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -886,7 +943,6 @@ class _RecentInspectionRow extends StatelessWidget {
                 ],
               ),
             ),
-            // Arrow indicator
             const Icon(Icons.chevron_right, size: 18, color: kMuted),
           ],
         ),
@@ -896,7 +952,7 @@ class _RecentInspectionRow extends StatelessWidget {
 }
 
 // ============================================================================
-// Revenue Collector Widgets (Existing)
+// Revenue Collector Widgets (Existing - kept as is)
 // ============================================================================
 
 class _IconBadge extends StatelessWidget {

@@ -50,8 +50,7 @@ class _AboutDinvestScreenState extends State<AboutDinvestScreen> {
                         variant: IconButtonVariant.FillWhiteA70014,
                         onTap: () => Get.back(),
                         child: CustomImageView(
-                          svgPath:
-                              ImageConstant.imgArrowleftWhiteA70050x50,
+                          svgPath: ImageConstant.imgArrowleftWhiteA70050x50,
                         ),
                       ),
                       const SizedBox(width: 20),
@@ -77,8 +76,9 @@ class _AboutDinvestScreenState extends State<AboutDinvestScreen> {
                         /// APP ICON
                         Center(
                           child: Image.asset(
-                            'assets/images/icon.png',
-                            height: 64,
+                            'assets/images/ntech.png',
+                            height: 80,
+                            width: 80,
                             fit: BoxFit.contain,
                           ),
                         ),
@@ -87,29 +87,79 @@ class _AboutDinvestScreenState extends State<AboutDinvestScreen> {
 
                         Center(
                           child: Text(
-                            "NICO Asset Managers",
+                            "NICO Technologies Ltd",
                             style: AppStyle.txtInterSemiBold20Gray800,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        Center(
+                          child: Text(
+                            "Local Government Revenue Management System",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0XFF6E758A),
+                            ),
                           ),
                         ),
 
                         const SizedBox(height: 24),
 
                         _section(
-                          title: "About NICO Asset Managers",
+                          title: "Our Mission",
                           body:
-                              "NICO Asset Managers Limited is a licensed investment management company offering professional asset management solutions tailored to individual and institutional investors. Our goal is to help clients grow, protect, and manage their wealth through disciplined and transparent investment strategies.",
+                          "Offering our clients solutions that aid digital transformation.",
+                        ),
+
+                        _section(
+                          title: "Our Vision",
+                          body:
+                          "Enabling excellent customer experience through innovative technology solutions.",
+                        ),
+
+                        _section(
+                          title: "About NICO Technologies Ltd",
+                          body:
+                          "NICO Technologies Limited was incorporated in January 2002 under the Companies Act of Malawi. The company evolved from a self-accounting IT department of The National Insurance Company Limited, where it had been in existence since 1982.",
+                        ),
+
+                        _section(
+                          title: "Our Background",
+                          body:
+                          "We are a purely Malawian company with strong financial backing and access to Professional Indemnity insurance cover, ensuring our commitment to service delivery. We believe in collaborating with various players locally and internationally through strategic alliances.",
                         ),
 
                         _section(
                           title: "About This App",
                           body:
-                              "The NICO Asset Managers App provides clients with convenient access to their investment portfolios anytime, anywhere. Through this app, you can view balances, track performance across different asset classes, and stay informed about your investments in real time.",
+                          "This Local Government Revenue Collection System was developed by NICO Technologies Ltd in partnership with the Government of Malawi through the Ministry of Local Government and respective Councils (City, District, Town, and Municipal Councils).",
                         ),
 
                         _section(
-                          title: "Data & Security",
+                          title: "System Purpose",
                           body:
-                              "We take the security and confidentiality of your data seriously. All personal and financial information is handled in accordance with applicable data protection laws and industry best practices to ensure your information remains safe and secure.",
+                          "The app facilitates efficient revenue collection and business licensing inspection services. Revenue collectors can process payments from vendors and businesses, while licensing inspectors can conduct and submit inspection reports for business premises.",
+                        ),
+
+                        _section(
+                          title: "Data Security",
+                          body:
+                          "We take data security seriously. All personal and financial information is protected using industry-standard encryption and security protocols. Access is restricted to authorized council personnel only.",
+                        ),
+
+                        _section(
+                          title: "Key Features",
+                          body:
+                          "• Mobile revenue collection with receipt generation\n• Business licensing inspection checklists\n• Real-time assignment tracking for inspectors\n• Secure authentication and role-based access\n• Council-specific data management\n• Offline capability for field operations",
+                        ),
+
+                        _section(
+                          title: "Support",
+                          body:
+                          "For technical support or inquiries, please contact your respective council's ICT department or reach out to NICO Technologies Ltd support team.",
                         ),
 
                         const SizedBox(height: 24),

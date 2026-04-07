@@ -50,14 +50,12 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                         variant: IconButtonVariant.FillWhiteA70014,
                         onTap: () => Get.back(),
                         child: CustomImageView(
-                          svgPath:
-                              ImageConstant.imgArrowleftWhiteA70050x50,
+                          svgPath: ImageConstant.imgArrowleftWhiteA70050x50,
                         ),
                       ),
                       const SizedBox(width: 20),
                       Text(
-                        "Terms & Conditions Policy",
-                        
+                        "Terms & Conditions",
                         style: AppStyle.txtInterSemiBold20.copyWith(
                           height: getVerticalSize(1.12),
                         ),
@@ -76,33 +74,63 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                     child: ListView(
                       children: [
                         _section(
-                          title: "1. App Usage",
+                          title: "1. Introduction",
                           body:
-                              "By accessing or using the NICO Asset Managers mobile application, you agree to comply with these Terms and Conditions. The app is provided to allow registered clients to view investment information, balances, and related financial data for personal use only.",
+                          "These Terms and Conditions govern your use of the Local Government Revenue Collection System, developed by NICO Technologies Ltd in partnership with the Government of Malawi through the Ministry of Local Government and respective Councils (City, District, Town, and Municipal Councils).",
                         ),
 
                         _section(
-                          title: "2. User Responsibilities",
+                          title: "2. System Purpose",
                           body:
-                              "You are responsible for maintaining the confidentiality of your login credentials and for all activities performed under your account. You agree not to misuse the app, attempt unauthorized access, or engage in activities that may compromise the security or functionality of the system.",
+                          "This application is designed to facilitate efficient revenue collection, business licensing inspection, and management of local government services. Authorized users include revenue collectors and licensing inspectors from participating councils.",
                         ),
 
                         _section(
-                          title: "3. Data Accuracy & Availability",
+                          title: "3. User Accounts",
                           body:
-                              "While NICO Asset Managers strives to ensure that all information displayed in the app is accurate and up to date, investment values may change due to market movements or system updates. Information provided through the app should not be considered as financial advice.",
+                          "Access is granted only to authorized personnel of participating councils. You are responsible for maintaining the confidentiality of your login credentials and for all activities conducted under your account.",
                         ),
 
                         _section(
-                          title: "4. Limitation of Liability",
+                          title: "4. Acceptable Use",
                           body:
-                              "NICO Asset Managers shall not be held liable for any losses arising from the use of this app, including but not limited to delays, inaccuracies, or temporary unavailability of services. Users are encouraged to contact the company directly for official confirmations.",
+                          "You agree to use this system solely for official council business purposes. Unauthorized access, data manipulation, or attempts to compromise system security are strictly prohibited and may result in legal action.",
                         ),
 
                         _section(
-                          title: "5. Changes to Terms",
+                          title: "5. Data Accuracy",
                           body:
-                              "NICO Asset Managers reserves the right to modify these Terms and Conditions at any time. Continued use of the app after changes have been made constitutes acceptance of the revised terms.",
+                          "While NICO Technologies Ltd and partner councils strive to maintain accurate information, we do not warrant the completeness or accuracy of all data. Users should verify critical information through official channels when necessary.",
+                        ),
+
+                        _section(
+                          title: "6. Intellectual Property",
+                          body:
+                          "The application, its code, design, and content are the intellectual property of NICO Technologies Ltd and the Government of Malawi. Unauthorized reproduction or distribution is prohibited.",
+                        ),
+
+                        _section(
+                          title: "7. Limitation of Liability",
+                          body:
+                          "NICO Technologies Ltd and partner councils shall not be liable for any indirect, incidental, or consequential damages arising from the use or inability to use this system, including data loss or service interruptions.",
+                        ),
+
+                        _section(
+                          title: "8. System Availability",
+                          body:
+                          "While we strive for continuous availability, we do not guarantee uninterrupted access. Scheduled maintenance or unforeseen technical issues may temporarily affect system accessibility.",
+                        ),
+
+                        _section(
+                          title: "9. Amendments",
+                          body:
+                          "NICO Technologies Ltd reserves the right to modify these Terms and Conditions at any time. Continued use of the system after changes constitutes acceptance of the updated terms.",
+                        ),
+
+                        _section(
+                          title: "10. Governing Law",
+                          body:
+                          "These Terms and Conditions are governed by the laws of the Republic of Malawi. Any disputes shall be resolved through the appropriate Malawian legal channels.",
                         ),
 
                         const SizedBox(height: 24),
@@ -118,7 +146,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     );
   }
 
-  
   /// -----------------------------
   Widget _section({required String title, required String body}) {
     return Container(

@@ -53,7 +53,7 @@ class MyApp extends StatelessWidget {
     splashController.startConnectivityListener(context);
 
     return GetMaterialApp(   // Use GetMaterialApp instead of MaterialApp
-      title: 'NAML OneNICO App',
+      title: 'My Council App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: Colors.blue,

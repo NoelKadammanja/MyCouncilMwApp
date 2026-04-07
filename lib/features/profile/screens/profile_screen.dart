@@ -68,7 +68,7 @@ class ProfilePage extends StatelessWidget {
                               child: Container(
                                 decoration: AppDecoration.fillGray100.copyWith(
                                   borderRadius:
-                                      BorderRadiusStyle.customBorderTL32,
+                                  BorderRadiusStyle.customBorderTL32,
                                 ),
                                 child: Padding(
                                   padding: getPadding(top: 24),
@@ -86,12 +86,12 @@ class ProfilePage extends StatelessWidget {
                                         textAlign: TextAlign.left,
                                         style: AppStyle.txtInterBold14Gray800
                                             .copyWith(
-                                              height: getVerticalSize(1.19),
-                                            ),
+                                          height: getVerticalSize(1.19),
+                                        ),
                                       ),
                                       GestureDetector(
                                         onTap: () {
-                                          Get.to(PersonalInformation());
+                                          Get.to(() => PersonalInformation());
                                         },
                                         child: Container(
                                           margin: getMargin(top: 16),
@@ -99,26 +99,26 @@ class ProfilePage extends StatelessWidget {
                                           decoration: AppDecoration
                                               .fillWhiteA700
                                               .copyWith(
-                                                borderRadius: BorderRadiusStyle
-                                                    .roundedBorder24,
-                                              ),
+                                            borderRadius: BorderRadiusStyle
+                                                .roundedBorder24,
+                                          ),
                                           child: Row(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
+                                            MainAxisAlignment.spaceBetween,
                                             children: [
                                               Row(
                                                 children: [
                                                   Card(
                                                     clipBehavior:
-                                                        Clip.antiAlias,
+                                                    Clip.antiAlias,
                                                     elevation: 0,
                                                     margin: EdgeInsets.all(0),
                                                     color:
-                                                        ColorConstant.yellow700,
+                                                    ColorConstant.yellow700,
                                                     shape: RoundedRectangleBorder(
                                                       borderRadius:
-                                                          BorderRadiusStyle
-                                                              .circleBorder20,
+                                                      BorderRadiusStyle
+                                                          .circleBorder20,
                                                     ),
                                                     child: Container(
                                                       height: getSize(40.00),
@@ -129,10 +129,10 @@ class ProfilePage extends StatelessWidget {
                                                       decoration: AppDecoration
                                                           .fillYellow700
                                                           .copyWith(
-                                                            borderRadius:
-                                                                BorderRadiusStyle
-                                                                    .circleBorder20,
-                                                          ),
+                                                        borderRadius:
+                                                        BorderRadiusStyle
+                                                            .circleBorder20,
+                                                      ),
                                                       child: Stack(
                                                         children: [
                                                           CustomImageView(
@@ -160,23 +160,23 @@ class ProfilePage extends StatelessWidget {
                                                     child: Text(
                                                       "Account Information".tr,
                                                       overflow:
-                                                          TextOverflow.ellipsis,
+                                                      TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
                                                       style: AppStyle
                                                           .txtInterMedium16
                                                           .copyWith(
-                                                            height:
-                                                                getVerticalSize(
-                                                                  1.24,
-                                                                ),
-                                                          ),
+                                                        height:
+                                                        getVerticalSize(
+                                                          1.24,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                               CustomImageView(
                                                 svgPath:
-                                                    ImageConstant.imgArrowright,
+                                                ImageConstant.imgArrowright,
                                                 height: getSize(20.00),
                                                 width: getSize(20.00),
                                                 margin: getMargin(
@@ -200,26 +200,26 @@ class ProfilePage extends StatelessWidget {
                                           decoration: AppDecoration
                                               .fillWhiteA700
                                               .copyWith(
-                                                borderRadius: BorderRadiusStyle
-                                                    .roundedBorder24,
-                                              ),
+                                            borderRadius: BorderRadiusStyle
+                                                .roundedBorder24,
+                                          ),
                                           child: Row(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
+                                            MainAxisAlignment.spaceBetween,
                                             children: [
                                               Row(
                                                 children: [
                                                   Card(
                                                     clipBehavior:
-                                                        Clip.antiAlias,
+                                                    Clip.antiAlias,
                                                     elevation: 0,
                                                     margin: EdgeInsets.all(0),
                                                     color:
-                                                        ColorConstant.redA200,
+                                                    ColorConstant.redA200,
                                                     shape: RoundedRectangleBorder(
                                                       borderRadius:
-                                                          BorderRadiusStyle
-                                                              .circleBorder20,
+                                                      BorderRadiusStyle
+                                                          .circleBorder20,
                                                     ),
                                                     child: Container(
                                                       height: getSize(40.00),
@@ -230,10 +230,10 @@ class ProfilePage extends StatelessWidget {
                                                       decoration: AppDecoration
                                                           .fillRedA200
                                                           .copyWith(
-                                                            borderRadius:
-                                                                BorderRadiusStyle
-                                                                    .circleBorder20,
-                                                          ),
+                                                        borderRadius:
+                                                        BorderRadiusStyle
+                                                            .circleBorder20,
+                                                      ),
                                                       child: Stack(
                                                         children: [
                                                           CustomImageView(
@@ -261,23 +261,23 @@ class ProfilePage extends StatelessWidget {
                                                     child: Text(
                                                       "App Notifications".tr,
                                                       overflow:
-                                                          TextOverflow.ellipsis,
+                                                      TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
                                                       style: AppStyle
                                                           .txtInterMedium16
                                                           .copyWith(
-                                                            height:
-                                                                getVerticalSize(
-                                                                  1.24,
-                                                                ),
-                                                          ),
+                                                        height:
+                                                        getVerticalSize(
+                                                          1.24,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                               CustomImageView(
                                                 svgPath:
-                                                    ImageConstant.imgArrowright,
+                                                ImageConstant.imgArrowright,
                                                 height: getSize(20.00),
                                                 width: getSize(20.00),
                                                 margin: getMargin(
@@ -296,19 +296,19 @@ class ProfilePage extends StatelessWidget {
                                             barrierDismissible: true,
                                             builder: (ctx) => Dialog(
                                               insetPadding:
-                                                  EdgeInsets.symmetric(
-                                                    horizontal: 24,
-                                                  ),
+                                              EdgeInsets.symmetric(
+                                                horizontal: 24,
+                                              ),
                                               child: Padding(
                                                 padding: getPadding(all: 16),
                                                 child: Stack(
                                                   children: [
                                                     Column(
                                                       mainAxisSize:
-                                                          MainAxisSize.min,
+                                                      MainAxisSize.min,
                                                       crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
+                                                      CrossAxisAlignment
+                                                          .start,
                                                       children: [
                                                         SizedBox(height: 8),
                                                         Text(
@@ -316,14 +316,14 @@ class ProfilePage extends StatelessWidget {
                                                           style: AppStyle
                                                               .txtInterSemiBold20
                                                               .copyWith(
-                                                                color: AppStyle
-                                                                    .txtInterMedium16
-                                                                    .color, 
-                                                                height:
-                                                                    getVerticalSize(
-                                                                      1.12,
-                                                                    ),
-                                                              ),
+                                                            color: AppStyle
+                                                                .txtInterMedium16
+                                                                .color,
+                                                            height:
+                                                            getVerticalSize(
+                                                              1.12,
+                                                            ),
+                                                          ),
                                                         ),
                                                         SizedBox(height: 16),
                                                         Row(
@@ -331,8 +331,8 @@ class ProfilePage extends StatelessWidget {
                                                             Icon(
                                                               Icons.check,
                                                               color:
-                                                                  ColorConstant
-                                                                      .blue700,
+                                                              ColorConstant
+                                                                  .blue700,
                                                             ),
                                                             SizedBox(width: 12),
                                                             Text(
@@ -355,9 +355,9 @@ class ProfilePage extends StatelessWidget {
                                                             ).pop(),
                                                         child: Padding(
                                                           padding:
-                                                              const EdgeInsets.all(
-                                                                8.0,
-                                                              ),
+                                                          const EdgeInsets.all(
+                                                            8.0,
+                                                          ),
                                                           child: Icon(
                                                             Icons.close,
                                                             size: 20,
@@ -377,26 +377,26 @@ class ProfilePage extends StatelessWidget {
                                           decoration: AppDecoration
                                               .fillWhiteA700
                                               .copyWith(
-                                                borderRadius: BorderRadiusStyle
-                                                    .roundedBorder24,
-                                              ),
+                                            borderRadius: BorderRadiusStyle
+                                                .roundedBorder24,
+                                          ),
                                           child: Row(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
+                                            MainAxisAlignment.spaceBetween,
                                             children: [
                                               Row(
                                                 children: [
                                                   Card(
                                                     clipBehavior:
-                                                        Clip.antiAlias,
+                                                    Clip.antiAlias,
                                                     elevation: 0,
                                                     margin: EdgeInsets.all(0),
                                                     color: ColorConstant
                                                         .deepPurpleA200,
                                                     shape: RoundedRectangleBorder(
                                                       borderRadius:
-                                                          BorderRadiusStyle
-                                                              .circleBorder20,
+                                                      BorderRadiusStyle
+                                                          .circleBorder20,
                                                     ),
                                                     child: Container(
                                                       height: getSize(40.00),
@@ -407,10 +407,10 @@ class ProfilePage extends StatelessWidget {
                                                       decoration: AppDecoration
                                                           .fillDeeppurpleA200
                                                           .copyWith(
-                                                            borderRadius:
-                                                                BorderRadiusStyle
-                                                                    .circleBorder20,
-                                                          ),
+                                                        borderRadius:
+                                                        BorderRadiusStyle
+                                                            .circleBorder20,
+                                                      ),
                                                       child: Stack(
                                                         children: [
                                                           CustomImageView(
@@ -438,23 +438,23 @@ class ProfilePage extends StatelessWidget {
                                                     child: Text(
                                                       "App Language".tr,
                                                       overflow:
-                                                          TextOverflow.ellipsis,
+                                                      TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
                                                       style: AppStyle
                                                           .txtInterMedium16
                                                           .copyWith(
-                                                            height:
-                                                                getVerticalSize(
-                                                                  1.24,
-                                                                ),
-                                                          ),
+                                                        height:
+                                                        getVerticalSize(
+                                                          1.24,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                               CustomImageView(
                                                 svgPath:
-                                                    ImageConstant.imgArrowright,
+                                                ImageConstant.imgArrowright,
                                                 height: getSize(20.00),
                                                 width: getSize(20.00),
                                                 margin: getMargin(
@@ -474,13 +474,13 @@ class ProfilePage extends StatelessWidget {
                                           textAlign: TextAlign.left,
                                           style: AppStyle.txtInterBold14Gray800
                                               .copyWith(
-                                                height: getVerticalSize(1.19),
-                                              ),
+                                            height: getVerticalSize(1.19),
+                                          ),
                                         ),
                                       ),
                                       GestureDetector(
                                         onTap: () {
-                                          Get.to(HelpCenterScreen());
+                                          Get.to(() => const HelpCenterScreen());
                                         },
                                         child: Container(
                                           margin: getMargin(top: 8),
@@ -488,26 +488,26 @@ class ProfilePage extends StatelessWidget {
                                           decoration: AppDecoration
                                               .fillWhiteA700
                                               .copyWith(
-                                                borderRadius: BorderRadiusStyle
-                                                    .roundedBorder24,
-                                              ),
+                                            borderRadius: BorderRadiusStyle
+                                                .roundedBorder24,
+                                          ),
                                           child: Row(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
+                                            MainAxisAlignment.spaceBetween,
                                             children: [
                                               Row(
                                                 children: [
                                                   Card(
                                                     clipBehavior:
-                                                        Clip.antiAlias,
+                                                    Clip.antiAlias,
                                                     elevation: 0,
                                                     margin: EdgeInsets.all(0),
                                                     color:
-                                                        ColorConstant.green400,
+                                                    ColorConstant.green400,
                                                     shape: RoundedRectangleBorder(
                                                       borderRadius:
-                                                          BorderRadiusStyle
-                                                              .circleBorder20,
+                                                      BorderRadiusStyle
+                                                          .circleBorder20,
                                                     ),
                                                     child: Container(
                                                       height: getSize(40.00),
@@ -518,16 +518,16 @@ class ProfilePage extends StatelessWidget {
                                                       decoration: AppDecoration
                                                           .fillGreen400
                                                           .copyWith(
-                                                            borderRadius:
-                                                                BorderRadiusStyle
-                                                                    .circleBorder20,
-                                                          ),
+                                                        borderRadius:
+                                                        BorderRadiusStyle
+                                                            .circleBorder20,
+                                                      ),
                                                       child: Stack(
                                                         children: [
                                                           CustomImageView(
                                                             svgPath:
-                                                                ImageConstant
-                                                                    .imgQuestion,
+                                                            ImageConstant
+                                                                .imgQuestion,
                                                             height: getSize(
                                                               24.00,
                                                             ),
@@ -550,23 +550,23 @@ class ProfilePage extends StatelessWidget {
                                                     child: Text(
                                                       "Terms and Conditions".tr,
                                                       overflow:
-                                                          TextOverflow.ellipsis,
+                                                      TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
                                                       style: AppStyle
                                                           .txtInterMedium16
                                                           .copyWith(
-                                                            height:
-                                                                getVerticalSize(
-                                                                  1.24,
-                                                                ),
-                                                          ),
+                                                        height:
+                                                        getVerticalSize(
+                                                          1.24,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                               CustomImageView(
                                                 svgPath:
-                                                    ImageConstant.imgArrowright,
+                                                ImageConstant.imgArrowright,
                                                 height: getSize(20.00),
                                                 width: getSize(20.00),
                                                 margin: getMargin(
@@ -580,7 +580,7 @@ class ProfilePage extends StatelessWidget {
                                       ),
                                       GestureDetector(
                                         onTap: () {
-                                          Get.to(AboutDinvestScreen());
+                                          Get.to(() => const AboutDinvestScreen());
                                         },
                                         child: Container(
                                           margin: getMargin(top: 8),
@@ -588,26 +588,26 @@ class ProfilePage extends StatelessWidget {
                                           decoration: AppDecoration
                                               .fillWhiteA700
                                               .copyWith(
-                                                borderRadius: BorderRadiusStyle
-                                                    .roundedBorder24,
-                                              ),
+                                            borderRadius: BorderRadiusStyle
+                                                .roundedBorder24,
+                                          ),
                                           child: Row(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
+                                            MainAxisAlignment.spaceBetween,
                                             children: [
                                               Row(
                                                 children: [
                                                   Card(
                                                     clipBehavior:
-                                                        Clip.antiAlias,
+                                                    Clip.antiAlias,
                                                     elevation: 0,
                                                     margin: EdgeInsets.all(0),
                                                     color:
-                                                        ColorConstant.blue700,
+                                                    ColorConstant.blue700,
                                                     shape: RoundedRectangleBorder(
                                                       borderRadius:
-                                                          BorderRadiusStyle
-                                                              .circleBorder20,
+                                                      BorderRadiusStyle
+                                                          .circleBorder20,
                                                     ),
                                                     child: Container(
                                                       height: getSize(40.00),
@@ -618,16 +618,16 @@ class ProfilePage extends StatelessWidget {
                                                       decoration: AppDecoration
                                                           .fillBlue700
                                                           .copyWith(
-                                                            borderRadius:
-                                                                BorderRadiusStyle
-                                                                    .circleBorder20,
-                                                          ),
+                                                        borderRadius:
+                                                        BorderRadiusStyle
+                                                            .circleBorder20,
+                                                      ),
                                                       child: Stack(
                                                         children: [
                                                           CustomImageView(
                                                             svgPath:
-                                                                ImageConstant
-                                                                    .imgWarning,
+                                                            ImageConstant
+                                                                .imgWarning,
                                                             height: getSize(
                                                               24.00,
                                                             ),
@@ -650,23 +650,23 @@ class ProfilePage extends StatelessWidget {
                                                     child: Text(
                                                       "About Mobile App".tr,
                                                       overflow:
-                                                          TextOverflow.ellipsis,
+                                                      TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
                                                       style: AppStyle
                                                           .txtInterMedium16
                                                           .copyWith(
-                                                            height:
-                                                                getVerticalSize(
-                                                                  1.24,
-                                                                ),
-                                                          ),
+                                                        height:
+                                                        getVerticalSize(
+                                                          1.24,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                               CustomImageView(
                                                 svgPath:
-                                                    ImageConstant.imgArrowright,
+                                                ImageConstant.imgArrowright,
                                                 height: getSize(20.00),
                                                 width: getSize(20.00),
                                                 margin: getMargin(
@@ -717,7 +717,7 @@ class ProfilePage extends StatelessWidget {
                                               'Logged out',
                                               'You have been logged out successfully',
                                               snackPosition:
-                                                  SnackPosition.BOTTOM,
+                                              SnackPosition.BOTTOM,
                                               backgroundColor: Colors.black87,
                                               colorText: Colors.white,
                                             );
@@ -733,25 +733,25 @@ class ProfilePage extends StatelessWidget {
                                           decoration: AppDecoration
                                               .fillWhiteA700
                                               .copyWith(
-                                                borderRadius: BorderRadiusStyle
-                                                    .roundedBorder24,
-                                              ),
+                                            borderRadius: BorderRadiusStyle
+                                                .roundedBorder24,
+                                          ),
                                           child: Row(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
+                                            MainAxisAlignment.spaceBetween,
                                             children: [
                                               Row(
                                                 children: [
                                                   Card(
                                                     clipBehavior:
-                                                        Clip.antiAlias,
+                                                    Clip.antiAlias,
                                                     elevation: 0,
                                                     margin: EdgeInsets.all(0),
                                                     color: ColorConstant.red400,
                                                     shape: RoundedRectangleBorder(
                                                       borderRadius:
-                                                          BorderRadiusStyle
-                                                              .circleBorder20,
+                                                      BorderRadiusStyle
+                                                          .circleBorder20,
                                                     ),
                                                     child: Container(
                                                       height: getSize(40.00),
@@ -762,10 +762,10 @@ class ProfilePage extends StatelessWidget {
                                                       decoration: AppDecoration
                                                           .fillRed400
                                                           .copyWith(
-                                                            borderRadius:
-                                                                BorderRadiusStyle
-                                                                    .circleBorder20,
-                                                          ),
+                                                        borderRadius:
+                                                        BorderRadiusStyle
+                                                            .circleBorder20,
+                                                      ),
                                                       child: Stack(
                                                         children: [
                                                           CustomImageView(
@@ -794,16 +794,16 @@ class ProfilePage extends StatelessWidget {
                                                     child: Text(
                                                       "Logout".tr,
                                                       overflow:
-                                                          TextOverflow.ellipsis,
+                                                      TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
                                                       style: AppStyle
                                                           .txtInterMedium16
                                                           .copyWith(
-                                                            height:
-                                                                getVerticalSize(
-                                                                  1.24,
-                                                                ),
-                                                          ),
+                                                        height:
+                                                        getVerticalSize(
+                                                          1.24,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
@@ -845,7 +845,7 @@ class ProfilePage extends StatelessWidget {
                                   initials = parts.length == 1
                                       ? parts.first[0].toUpperCase()
                                       : '${parts.first[0]}${parts.last[0]}'
-                                            .toUpperCase();
+                                      .toUpperCase();
                                 }
 
                                 return Column(
@@ -869,23 +869,23 @@ class ProfilePage extends StatelessWidget {
                                       ),
                                       child: CircleAvatar(
                                         backgroundColor:
-                                            ColorConstant.whiteA700,
+                                        ColorConstant.whiteA700,
                                         child: initials.isNotEmpty
                                             ? Text(
-                                                initials,
-                                                style: AppStyle
-                                                    .txtInterSemiBold20Gray800
-                                                    .copyWith(
-                                                      color:
-                                                          ColorConstant.blue700,
-                                                      fontSize: getFontSize(28),
-                                                    ),
-                                              )
+                                          initials,
+                                          style: AppStyle
+                                              .txtInterSemiBold20Gray800
+                                              .copyWith(
+                                            color:
+                                            ColorConstant.blue700,
+                                            fontSize: getFontSize(28),
+                                          ),
+                                        )
                                             : CustomImageView(
-                                                imagePath:
-                                                    ImageConstant.imgAvtar,
-                                                fit: BoxFit.cover,
-                                              ),
+                                          imagePath:
+                                          ImageConstant.imgAvtar,
+                                          fit: BoxFit.cover,
+                                        ),
                                       ),
                                     ),
 
@@ -895,7 +895,7 @@ class ProfilePage extends StatelessWidget {
                                         name.isNotEmpty ? name : "Username".tr,
                                         overflow: TextOverflow.ellipsis,
                                         style:
-                                            AppStyle.txtInterSemiBold20Gray800,
+                                        AppStyle.txtInterSemiBold20Gray800,
                                       ),
                                     ),
 
@@ -907,7 +907,7 @@ class ProfilePage extends StatelessWidget {
                                             : "Useremailaddress".tr,
                                         overflow: TextOverflow.ellipsis,
                                         style:
-                                            AppStyle.txtInterRegular14BlackA700,
+                                        AppStyle.txtInterRegular14BlackA700,
                                       ),
                                     ),
                                   ],
