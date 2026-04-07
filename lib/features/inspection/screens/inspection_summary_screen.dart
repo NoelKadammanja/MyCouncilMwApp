@@ -33,7 +33,7 @@ class InspectionSummaryScreen extends StatelessWidget {
     // Determine pass status based on rules:
     // - Pass if Yes percentage >= 80%
     // - Needs improvement if Yes percentage < 80%
-    final isPassed = yesPercentage >= 80;
+    final isPassed = yesPercentage >= 90;
 
     return {
       'totalItems': totalItems,
@@ -46,12 +46,12 @@ class InspectionSummaryScreen extends StatelessWidget {
   }
 
   String _getImprovementMessage(double yesPercentage) {
-    if (yesPercentage >= 80) {
+    if (yesPercentage >= 90) {
       return 'Excellent compliance! The business meets most requirements.';
-    } else if (yesPercentage >= 60) {
+    } else if (yesPercentage >= 75) {
       return 'Good compliance but some improvements needed.';
-    } else if (yesPercentage >= 40) {
-      return 'Moderate compliance. Several issues need attention.';
+    } else if (yesPercentage >= 60) {
+      return 'Moderate compliance. Needs Improvement.';
     } else if (yesPercentage >= 20) {
       return 'Low compliance. Major improvements required.';
     } else {
