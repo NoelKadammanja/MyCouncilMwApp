@@ -268,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               return null;
                             },
                             decoration: _fieldDecoration(
-                              hint: "name@example.com",
+                              hint: "name@domain.com",
                               icon: Icons.mail_outline,
                             ),
                           ),
