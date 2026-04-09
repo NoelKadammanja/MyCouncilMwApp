@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:local_govt_mw/core/services/api_service.dart';
+import 'package:local_govt_mw/core/services/offline_sync_service.dart';
 import 'package:local_govt_mw/features/inspection/models/inspection_model.dart';
 import 'package:local_govt_mw/features/inspection/screens/inspection_summary_screen.dart';
 import 'package:local_govt_mw/features/inspection/widgets/comment_dialog.dart';
@@ -26,6 +27,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   static const Color kBg = Color(0xFFF3F4F6);
 
   final ApiService _apiService = ApiService();
+  OfflineSyncService get _syncService => Get.find<OfflineSyncService>();
 
   List<ChecklistItem> _checklistItems = [];
   String _selectedCategory = 'All';
@@ -35,6 +37,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   String? _errorMessage;
   String _licenseTypeName = '';
   String? _licenseTypeId;
+
+  // Track whether checklist was loaded from cache (offline)
+  bool _loadedFromCache = false;
 
   @override
   void initState() {
@@ -71,67 +76,53 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     });
 
     try {
-      final endpoint = '/api/v1/inspection/subcategories/full-tree/$_licenseTypeId';
+      final endpoint =
+          '/api/v1/inspection/subcategories/full-tree/$_licenseTypeId';
       debugPrint('Fetching checklist from: $endpoint');
 
       final response = await _apiService.get(endpoint);
       debugPrint('Checklist API Response: $response');
 
-      if (response.containsKey('categories')) {
-        final List<dynamic> categories = response['categories'];
-        _licenseTypeName = response['licenseTypeName'] ?? 'Inspection';
+      _parseChecklistResponse(response);
+      _loadedFromCache = false;
 
-        final List<ChecklistItem> items = [];
-
-        for (var category in categories) {
-          final categoryName = category['description']?.toString() ?? 'Uncategorized';
-          final List<dynamic> categoryItems = category['items'] ?? [];
-
-          if (categoryItems.isNotEmpty) {
-            // For each item inside the items array, create a checklist item
-            for (var item in categoryItems) {
-              items.add(ChecklistItem(
-                id: item['id']?.toString() ?? '', // This is the actual checklist item ID
-                title: item['description']?.toString() ?? '',
-                description: item['description']?.toString() ?? '',
-                selectedValue: null,
-                comment: null,
-                category: categoryName,
-              ));
-            }
-          } else {
-            // If no items, treat the category itself as a checklist item
-            items.add(ChecklistItem(
-              id: category['id']?.toString() ?? '',
-              title: categoryName,
-              description: 'Check if ${categoryName.toLowerCase()} meets the required standards',
-              selectedValue: null,
-              comment: null,
-              category: 'General',
-            ));
-          }
-        }
-
-        _checklistItems = items;
-        _categories = ['All', ...items.map((e) => e.category).toSet().toList()];
-
-        debugPrint('Total checklist items loaded: ${_checklistItems.length}');
-        debugPrint('Checklist items: ${_checklistItems.map((e) => '${e.title} (${e.id})').toList()}');
-      } else {
-        throw Exception('Invalid response format from server');
-      }
-    } catch (e) {
-      debugPrint('Error fetching checklist: $e');
-      setState(() {
-        _errorMessage = e.toString();
-      });
-      Get.snackbar(
-        'Error',
-        'Failed to load checklist. Please try again.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      // Cache the checklist for offline use
+      await _syncService.cacheChecklist(
+        _licenseTypeId!,
+        _licenseTypeName,
+        response,
       );
+    } catch (e) {
+      debugPrint('Checklist API failed, trying local cache: $e');
+
+      // Try loading from local cache
+      final cached = await _syncService.getCachedChecklist(_licenseTypeId!);
+      if (cached != null) {
+        _parseChecklistResponse(cached);
+        _loadedFromCache = true;
+
+        Get.snackbar(
+          'Offline Mode',
+          'Checklist loaded from cache. Answers will sync when online.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+          margin: const EdgeInsets.all(12),
+        );
+      } else {
+        debugPrint('No cached checklist available: $e');
+        setState(() {
+          _errorMessage = e.toString();
+        });
+        Get.snackbar(
+          'Error',
+          'Failed to load checklist and no cached version available.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -139,22 +130,63 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     }
   }
 
-  int get _completedCount {
-    return _checklistItems.where((item) => item.selectedValue != null).length;
+  void _parseChecklistResponse(Map<String, dynamic> response) {
+    if (response.containsKey('categories')) {
+      final List<dynamic> categories = response['categories'];
+      _licenseTypeName = response['licenseTypeName'] ?? 'Inspection';
+
+      final List<ChecklistItem> items = [];
+
+      for (var category in categories) {
+        final categoryName =
+            category['description']?.toString() ?? 'Uncategorized';
+        final List<dynamic> categoryItems = category['items'] ?? [];
+
+        if (categoryItems.isNotEmpty) {
+          for (var item in categoryItems) {
+            items.add(ChecklistItem(
+              id: item['id']?.toString() ?? '',
+              title: item['description']?.toString() ?? '',
+              description: item['description']?.toString() ?? '',
+              selectedValue: null,
+              comment: null,
+              category: categoryName,
+            ));
+          }
+        } else {
+          items.add(ChecklistItem(
+            id: category['id']?.toString() ?? '',
+            title: categoryName,
+            description:
+            'Check if ${categoryName.toLowerCase()} meets the required standards',
+            selectedValue: null,
+            comment: null,
+            category: 'General',
+          ));
+        }
+      }
+
+      _checklistItems = items;
+      _categories = ['All', ...items.map((e) => e.category).toSet().toList()];
+
+      debugPrint('Total checklist items loaded: ${_checklistItems.length}');
+    } else {
+      throw Exception('Invalid response format from server');
+    }
   }
 
-  int get _totalCount {
-    return _checklistItems.length;
-  }
+  int get _completedCount =>
+      _checklistItems.where((item) => item.selectedValue != null).length;
+
+  int get _totalCount => _checklistItems.length;
 
   double get _completionPercentage {
     if (_totalCount == 0) return 0;
     return (_completedCount / _totalCount) * 100;
   }
 
-  bool get _canSubmit {
-    return _checklistItems.isNotEmpty && _completedCount == _totalCount;
-  }
+  bool get _canSubmit =>
+      _checklistItems.isNotEmpty && _completedCount == _totalCount;
 
   List<ChecklistItem> get _filteredItems {
     if (_selectedCategory == 'All') return _checklistItems;
@@ -162,6 +194,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         .where((item) => item.category == _selectedCategory)
         .toList();
   }
+
+  // ──────────────────────────────────────────────────────────────────
+  // SUBMIT (online-first with offline fallback)
+  // ──────────────────────────────────────────────────────────────────
 
   Future<void> _submitInspection() async {
     if (!_canSubmit) {
@@ -180,10 +216,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     });
 
     try {
-      // Use InspectionResultItem model to build the results with the correct item IDs
       final results = _checklistItems.map((item) {
         return InspectionResultItem(
-          checklistItemId: item.id, // This is now the ID from the items array
+          checklistItemId: item.id,
           value: item.selectedValue!,
           comment: item.comment,
         );
@@ -201,17 +236,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       debugPrint('Number of results: ${results.length}');
       debugPrint('Request body: ${jsonEncode(requestBody)}');
 
-      // Log each result item for debugging
-      for (var result in results) {
-        debugPrint('  - Item ID: ${result.checklistItemId}, Value: ${result.value}, Comment: ${result.comment ?? 'none'}');
-      }
-
-      final response = await _apiService.post(
-        ApiService.submitInspectionEndpoint,
-        requestBody,
+      // Use OfflineSyncService for submit (handles online/offline automatically)
+      final submitResult = await _syncService.submitInspection(
+        applicationId: widget.assignment.id,
+        businessName: widget.assignment.businessName,
+        resultsJson: requestBody,
       );
-
-      debugPrint('Submission successful! Response: $response');
 
       final double overallRating = (_completedCount / _totalCount) * 5;
 
@@ -222,33 +252,53 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         checklist: _checklistItems,
         inspectorNotes: '',
         overallRating: overallRating,
-        status: 'completed',
+        status: submitResult == SubmitResult.submittedOnline
+            ? 'completed'
+            : 'pending_sync',
       );
 
+      // Navigate to summary screen – pass the submit result so we can show
+      // an appropriate message there too.
       Get.off(() => InspectionSummaryScreen(
         report: report,
         placeName: widget.assignment.businessName,
+        savedOffline: submitResult == SubmitResult.savedOffline,
       ));
 
-      Get.snackbar(
-        'Success',
-        'Inspection results submitted successfully!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: kPrimaryGreen,
-        colorText: Colors.white,
-      );
+      if (submitResult == SubmitResult.submittedOnline) {
+        Get.snackbar(
+          'Success',
+          'Inspection results submitted successfully!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: kPrimaryGreen,
+          colorText: Colors.white,
+        );
+      } else {
+        Get.snackbar(
+          'Saved Offline',
+          'Results saved locally. They will sync when you\'re back online.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 5),
+        );
+      }
     } catch (e) {
       debugPrint('Submission error: $e');
 
-      String errorMessage = 'Failed to submit inspection results. Please try again.';
+      String errorMessage =
+          'Failed to submit inspection results. Please try again.';
       if (e.toString().contains('500')) {
-        errorMessage = 'Server error. The checklist item IDs might not be valid for this application.';
+        errorMessage =
+        'Server error. The checklist item IDs might not be valid for this application.';
       } else if (e.toString().contains('400')) {
-        errorMessage = 'Invalid data format. Please review your answers and try again.';
+        errorMessage =
+        'Invalid data format. Please review your answers and try again.';
       } else if (e.toString().contains('401')) {
         errorMessage = 'Session expired. Please log in again.';
       } else if (e.toString().contains('404')) {
-        errorMessage = 'Submission endpoint not found. Please contact support.';
+        errorMessage =
+        'Submission endpoint not found. Please contact support.';
       }
 
       Get.snackbar(
@@ -274,9 +324,11 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         initialComment: item.comment,
         onSave: (comment) {
           setState(() {
-            final index = _checklistItems.indexWhere((i) => i.id == item.id);
+            final index =
+            _checklistItems.indexWhere((i) => i.id == item.id);
             if (index != -1) {
-              _checklistItems[index].comment = comment.isEmpty ? null : comment;
+              _checklistItems[index].comment =
+              comment.isEmpty ? null : comment;
             }
           });
         },
@@ -304,10 +356,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   ? 'Loading checklist...'
                   : _licenseTypeId == null
                   ? 'No license type found'
-                  : '$_licenseTypeName Inspection',
+                  : '$_licenseTypeName Inspection${_loadedFromCache ? ' (Offline)' : ''}',
               style: TextStyle(
                 fontSize: 12,
-                color: kMuted,
+                color: _loadedFromCache ? Colors.orange : kMuted,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -318,10 +370,30 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         foregroundColor: kText,
         centerTitle: false,
         actions: [
+          // Offline indicator
+          if (_loadedFromCache)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Chip(
+                label: const Text(
+                  'OFFLINE',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.orange,
+                  ),
+                ),
+                backgroundColor: Colors.orange.withOpacity(0.1),
+                side: const BorderSide(color: Colors.orange),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+
           if (!_isLoading && _checklistItems.isNotEmpty)
             Container(
               margin: const EdgeInsets.only(right: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: kPrimaryGreen.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
@@ -363,15 +435,24 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red.withOpacity(0.5)),
+            Icon(Icons.error_outline,
+                size: 64,
+                color: Colors.red.withOpacity(0.5)),
             const SizedBox(height: 16),
-            Text('Failed to load checklist', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            Text('Failed to load checklist',
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            Text(_errorMessage!, textAlign: TextAlign.center),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(_errorMessage!,
+                  textAlign: TextAlign.center),
+            ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _getLicenseTypeIdAndFetchChecklist,
-              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryGreen),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryGreen),
               child: const Text('Retry'),
             ),
           ],
@@ -382,15 +463,19 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.checklist_outlined, size: 64, color: kMuted.withOpacity(0.5)),
+            Icon(Icons.checklist_outlined,
+                size: 64,
+                color: kMuted.withOpacity(0.5)),
             const SizedBox(height: 16),
             const Text('No checklist items found'),
             const SizedBox(height: 8),
-            Text('There are no inspection items for license type: $_licenseTypeName'),
+            Text(
+                'There are no inspection items for license type: $_licenseTypeName'),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => Get.back(),
-              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryGreen),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryGreen),
               child: const Text('Go Back'),
             ),
           ],
@@ -398,13 +483,40 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       )
           : Column(
         children: [
+          // Offline banner
+          if (_loadedFromCache)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 10),
+              color: Colors.orange.withOpacity(0.1),
+              child: Row(
+                children: [
+                  const Icon(Icons.wifi_off,
+                      size: 16, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'You\'re offline. Answers will be saved locally and submitted when you reconnect.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           Container(
             margin: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Completion Progress',
@@ -431,7 +543,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     value: _completionPercentage / 100,
                     minHeight: 8,
                     backgroundColor: kBorder,
-                    valueColor: const AlwaysStoppedAnimation<Color>(kPrimaryGreen),
+                    valueColor:
+                    const AlwaysStoppedAnimation<Color>(
+                        kPrimaryGreen),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -453,24 +567,36 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               margin: const EdgeInsets.only(bottom: 8),
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16),
                 itemCount: _categories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, __) =>
+                const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final category = _categories[index];
-                  final isSelected = _selectedCategory == category;
+                  final isSelected =
+                      _selectedCategory == category;
                   return FilterChip(
                     label: Text(category),
                     selected: isSelected,
-                    onSelected: (_) => setState(() => _selectedCategory = category),
+                    onSelected: (_) => setState(
+                            () => _selectedCategory = category),
                     backgroundColor: Colors.white,
-                    selectedColor: kPrimaryGreen.withOpacity(0.1),
+                    selectedColor:
+                    kPrimaryGreen.withOpacity(0.1),
                     checkmarkColor: kPrimaryGreen,
                     labelStyle: TextStyle(
-                      color: isSelected ? kPrimaryGreen : kMuted,
-                      fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                      color: isSelected
+                          ? kPrimaryGreen
+                          : kMuted,
+                      fontWeight: isSelected
+                          ? FontWeight.w900
+                          : FontWeight.w600,
                     ),
-                    side: BorderSide(color: isSelected ? kPrimaryGreen : kBorder),
+                    side: BorderSide(
+                        color: isSelected
+                            ? kPrimaryGreen
+                            : kBorder),
                   );
                 },
               ),
@@ -478,7 +604,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16),
               itemCount: _filteredItems.length,
               itemBuilder: (context, index) {
                 final item = _filteredItems[index];
@@ -486,11 +613,14 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   item: item,
                   onValueChanged: (value) {
                     setState(() {
-                      final originalItem = _checklistItems.firstWhere((i) => i.id == item.id);
+                      final originalItem =
+                      _checklistItems.firstWhere(
+                              (i) => i.id == item.id);
                       originalItem.selectedValue = value;
                     });
                   },
-                  onCommentPressed: () => _showCommentDialog(item),
+                  onCommentPressed: () =>
+                      _showCommentDialog(item),
                 );
               },
             ),
@@ -510,11 +640,17 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
             ),
             child: SafeArea(
               child: ElevatedButton(
-                onPressed: _isSubmitting ? null : (_canSubmit ? _submitInspection : null),
+                onPressed: _isSubmitting
+                    ? null
+                    : (_canSubmit
+                    ? _submitInspection
+                    : null),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _canSubmit ? kPrimaryGreen : kMuted,
+                  backgroundColor:
+                  _canSubmit ? kPrimaryGreen : kMuted,
                   foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
+                  minimumSize:
+                  const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -531,7 +667,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 )
                     : Text(
                   _canSubmit
+                      ? (_syncService.isOnline.value
                       ? 'Submit Inspection Report'
+                      : 'Save & Sync Later')
                       : 'Complete all items (${_completedCount}/$_totalCount) to submit',
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
@@ -547,6 +685,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHECKLIST TILE WIDGET (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _ChecklistTile extends StatelessWidget {
   final ChecklistItem item;
@@ -596,7 +738,8 @@ class _ChecklistTile extends StatelessWidget {
               ),
               if (!isAnswered)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -623,12 +766,13 @@ class _ChecklistTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-
           Row(
             children: [
               Expanded(
                 child: RadioListTile<String>(
-                  title: const Text('Yes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  title: const Text('Yes',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 13)),
                   value: 'YES',
                   groupValue: item.selectedValue,
                   onChanged: (value) => onValueChanged(value!),
@@ -639,7 +783,9 @@ class _ChecklistTile extends StatelessWidget {
               ),
               Expanded(
                 child: RadioListTile<String>(
-                  title: const Text('No', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  title: const Text('No',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 13)),
                   value: 'NO',
                   groupValue: item.selectedValue,
                   onChanged: (value) => onValueChanged(value!),
@@ -653,13 +799,14 @@ class _ChecklistTile extends StatelessWidget {
                 icon: Icon(
                   Icons.comment_outlined,
                   size: 20,
-                  color: item.comment != null && item.comment!.isNotEmpty ? kPrimaryGreen : kMuted,
+                  color: item.comment != null && item.comment!.isNotEmpty
+                      ? kPrimaryGreen
+                      : kMuted,
                 ),
                 tooltip: 'Add comment',
               ),
             ],
           ),
-
           if (item.comment != null && item.comment!.isNotEmpty)
             Container(
               margin: const EdgeInsets.only(top: 8),
@@ -677,7 +824,10 @@ class _ChecklistTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       item.comment!,
-                      style: TextStyle(fontSize: 12, color: kMuted, fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: kMuted,
+                          fontStyle: FontStyle.italic),
                     ),
                   ),
                 ],

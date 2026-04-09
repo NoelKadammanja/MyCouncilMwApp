@@ -14,10 +14,24 @@ class LoginController extends GetxController {
   final RxBool rememberMe = false.obs;
   final RxBool isLoading = false.obs;
 
-  // ✅ Same base URL as ApiService — single source of truth
-  static const String _loginUrl =
-      '${ApiService.baseUrl}/api/identity/login';
+  static const String _loginUrl = '${ApiService.baseUrl}/api/identity/login';
 
+  // ─── Called once at startup by main.dart / splash to auto-login ──
+  Future<bool> tryAutoLogin() async {
+    final dao = UserDao();
+    final isLoggedIn = await dao.isLoggedIn();
+    if (isLoggedIn) {
+      debugPrint('LoginController: auto-login successful from stored session');
+      // Ensure ApiService is registered
+      if (!Get.isRegistered<ApiService>()) {
+        Get.put<ApiService>(ApiService(), permanent: true);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // ─── Standard credential login ────────────────────────────────────
   Future<void> login() async {
     if (isLoading.value) return;
 
@@ -40,7 +54,6 @@ class LoginController extends GetxController {
 
     try {
       final url = Uri.parse(_loginUrl);
-
       final response = await http
           .post(
         url,
@@ -54,7 +67,6 @@ class LoginController extends GetxController {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-
         final String token = (data['token'] ?? '').toString();
 
         if (token.isEmpty) {
@@ -70,17 +82,18 @@ class LoginController extends GetxController {
           return;
         }
 
-        // ✅ Step 1: Persist the full login payload using the EXISTING UserDao
-        // UserDao.saveUser() already knows how to extract token, role,
-        // council, department, portfolio etc. from the full payload.
+        // Step 1: Persist session using UserDao (SQLite)
+        // The email from the form is included so UserDao can store it.
+        final enrichedData = Map<String, dynamic>.from(data);
+        if (!enrichedData.containsKey('email')) {
+          enrichedData['email'] = email;
+        }
+
         final userDao = UserDao();
-        await userDao.saveUser(data);
+        await userDao.saveUser(enrichedData);
+        debugPrint('LOGIN: Session persisted to SQLite. Token = $token');
 
-        debugPrint('LOGIN: Session saved. Token = $token');
-
-        // ✅ Step 2: Make sure ApiService is registered as permanent so it
-        // survives all route changes for the lifetime of this session.
-        // If AppBinding already registered it at startup, this is a no-op.
+        // Step 2: Register ApiService
         if (!Get.isRegistered<ApiService>()) {
           Get.put<ApiService>(ApiService(), permanent: true);
           debugPrint('LOGIN: ApiService registered.');
@@ -95,14 +108,16 @@ class LoginController extends GetxController {
 
         Get.snackbar(
           'Welcome back!',
-          fullName.isNotEmpty ? 'Hello, $fullName 👋' : 'Logged in successfully',
+          fullName.isNotEmpty
+              ? 'Hello, $fullName 👋'
+              : 'Logged in successfully',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: const Color(0xFF1E7F4F),
           colorText: Colors.white,
           margin: const EdgeInsets.all(12),
         );
 
-        // ✅ Step 3: Navigate ONLY after token is persisted and service is ready
+        // Step 3: Navigate
         Get.offAllNamed(AppRoutes.appNavigationScreen);
       } else {
         isLoading.value = false;
@@ -137,6 +152,20 @@ class LoginController extends GetxController {
         margin: const EdgeInsets.all(12),
       );
     }
+  }
+
+  // ─── Logout ───────────────────────────────────────────────────────
+  Future<void> logout() async {
+    final userDao = UserDao();
+    await userDao.clearUser();
+
+    // Unregister scoped services if needed
+    if (Get.isRegistered<ApiService>()) {
+      Get.delete<ApiService>();
+    }
+
+    debugPrint('LOGIN: User logged out, session cleared');
+    Get.offAllNamed(AppRoutes.loginScreen);
   }
 
   @override

@@ -3,24 +3,33 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:local_govt_mw/features/splash/controllers/splash_controller.dart';
 
-
 class NetworkInfo {
   final Connectivity connectivity;
   NetworkInfo(this.connectivity);
 
+  /// Returns true if the device currently has an active network connection.
   Future<bool> get isConnected async {
     final result = await connectivity.checkConnectivity();
-    return result.contains(ConnectivityResult.mobile) ||
-           result.contains(ConnectivityResult.wifi);
+    return _hasConnection(result);
   }
 
-  static void checkConnectivity(BuildContext context, SplashController controller) {
+  static bool _hasConnection(List<ConnectivityResult> results) {
+    return results.contains(ConnectivityResult.mobile) ||
+        results.contains(ConnectivityResult.wifi) ||
+        results.contains(ConnectivityResult.ethernet);
+  }
+
+  /// Subscribe to connectivity changes and show a snackbar + update the
+  /// [SplashController] state.  Call this once from your root widget.
+  static void checkConnectivity(
+      BuildContext context,
+      SplashController controller,
+      ) {
     Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) {
       if (controller.firstTimeConnectionCheck) {
         controller.setFirstTimeConnectionCheck(false);
       } else {
-        bool isConnected = result.contains(ConnectivityResult.wifi) ||
-                           result.contains(ConnectivityResult.mobile);
+        final isConnected = _hasConnection(result);
 
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

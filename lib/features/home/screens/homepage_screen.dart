@@ -89,11 +89,22 @@ class _HomepageScreenState extends State<HomepageScreen> {
       final dao = UserDao();
       final user = await dao.getUser();
       if (user != null) {
+        // Debug: Print all keys and values
+        debugPrint('=== User Data from DAO ===');
+        debugPrint('All keys: ${user.keys}');
+        debugPrint('council_name: ${user['council_name']}');
+        debugPrint('council: ${user['council']}');
+        debugPrint('Full user: $user');
+
         setState(() {
           fullName = user['name']?.toString() ?? user['fullName']?.toString() ?? 'User';
           email = user['email']?.toString() ?? '';
           role = user['role']?.toString() ?? 'REVENUE_COLLECTOR';
-          councilName = user['council_name']?.toString() ?? 'Council';
+
+          // Get council name from the stored value
+          councilName = user['council_name']?.toString() ??
+              (user['council'] as Map?)?.toString() ??
+              'Council';
         });
 
         // Load appropriate data based on role

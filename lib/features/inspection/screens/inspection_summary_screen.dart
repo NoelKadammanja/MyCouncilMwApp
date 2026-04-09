@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:local_govt_mw/core/services/offline_sync_service.dart';
 import 'package:local_govt_mw/features/inspection/models/inspection_model.dart';
 import 'package:local_govt_mw/routes/app_routes.dart';
 
@@ -8,10 +9,14 @@ class InspectionSummaryScreen extends StatelessWidget {
   final InspectionReport report;
   final String placeName;
 
+  /// When true, the inspection was saved locally and is pending sync.
+  final bool savedOffline;
+
   const InspectionSummaryScreen({
     super.key,
     required this.report,
     required this.placeName,
+    this.savedOffline = false,
   });
 
   static const Color kPrimaryGreen = Color(0xFF1E7F4F);
@@ -20,19 +25,15 @@ class InspectionSummaryScreen extends StatelessWidget {
   static const Color kBorder = Color(0xFFE5E7EB);
   static const Color kBg = Color(0xFFF3F4F6);
 
-  // Calculate statistics based on Yes/No answers
   Map<String, dynamic> _calculateStatistics() {
     final totalItems = report.checklist.length;
-    final yesCount = report.checklist.where((item) => item.selectedValue == 'YES').length;
-    final noCount = report.checklist.where((item) => item.selectedValue == 'NO').length;
-    final yesPercentage = totalItems > 0 ? (yesCount / totalItems) * 100 : 0;
-
-    // Calculate rating out of 5 based on Yes percentage
+    final yesCount =
+        report.checklist.where((item) => item.selectedValue == 'YES').length;
+    final noCount =
+        report.checklist.where((item) => item.selectedValue == 'NO').length;
+    final yesPercentage =
+    totalItems > 0 ? (yesCount / totalItems) * 100 : 0.0;
     final rating = (yesPercentage / 100) * 5;
-
-    // Determine pass status based on rules:
-    // - Pass if Yes percentage >= 80%
-    // - Needs improvement if Yes percentage < 80%
     final isPassed = yesPercentage >= 90;
 
     return {
@@ -74,10 +75,7 @@ class InspectionSummaryScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Inspection Summary',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 20,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -95,7 +93,92 @@ class InspectionSummaryScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Status card
+            // ── Offline / pending sync banner ──────────────────────
+            if (savedOffline)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.orange.withOpacity(0.4)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.cloud_off,
+                            color: Colors.orange, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Saved Offline – Pending Sync',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Colors.orange,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Your inspection results have been saved on this device. '
+                          'They will be automatically submitted to the server when '
+                          'internet connectivity is restored.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // Manual sync button
+                    Obx(() {
+                      final syncService = Get.find<OfflineSyncService>();
+                      final isSyncing = syncService.isSyncing.value;
+                      final isOnline = syncService.isOnline.value;
+
+                      return ElevatedButton.icon(
+                        onPressed:
+                        isSyncing || !isOnline
+                            ? null
+                            : () => syncService.syncPendingSubmissions(),
+                        icon: isSyncing
+                            ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                            : const Icon(Icons.sync, size: 16),
+                        label: Text(
+                          isSyncing
+                              ? 'Syncing...'
+                              : isOnline
+                              ? 'Sync Now'
+                              : 'No Connection',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w900, fontSize: 13),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          elevation: 0,
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+
+            // ── Status card ────────────────────────────────────────
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -109,7 +192,9 @@ class InspectionSummaryScreen extends StatelessWidget {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: (isPassed ? kPrimaryGreen : Colors.red).withOpacity(0.1),
+                      color:
+                      (isPassed ? kPrimaryGreen : Colors.red)
+                          .withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -132,18 +217,15 @@ class InspectionSummaryScreen extends StatelessWidget {
                   Text(
                     placeName,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      color: kText,
-                    ),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: kText),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    DateFormat('MMMM dd, yyyy - hh:mm a').format(report.inspectionDate),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: kMuted,
-                    ),
+                    DateFormat('MMMM dd, yyyy - hh:mm a')
+                        .format(report.inspectionDate),
+                    style: TextStyle(fontSize: 12, color: kMuted),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -154,11 +236,8 @@ class InspectionSummaryScreen extends StatelessWidget {
                     ),
                     child: Text(
                       _getImprovementMessage(yesPercentage),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: kMuted,
-                        height: 1.4,
-                      ),
+                      style:
+                      TextStyle(fontSize: 13, color: kMuted, height: 1.4),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -167,7 +246,7 @@ class InspectionSummaryScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Rating and Statistics card
+            // ── Rating & Stats card ────────────────────────────────
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -185,48 +264,36 @@ class InspectionSummaryScreen extends StatelessWidget {
                             Text(
                               rating.toStringAsFixed(1),
                               style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 32,
-                                color: kPrimaryGreen,
-                              ),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 32,
+                                  color: kPrimaryGreen),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              'Rating (out of 5)',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: kMuted,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            Text('Rating (out of 5)',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: kMuted,
+                                    fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
-                      Container(
-                        width: 1,
-                        height: 40,
-                        color: kBorder,
-                      ),
+                      Container(width: 1, height: 40, color: kBorder),
                       Expanded(
                         child: Column(
                           children: [
                             Text(
                               '${yesPercentage.toStringAsFixed(0)}%',
                               style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 32,
-                                color: kPrimaryGreen,
-                              ),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 32,
+                                  color: kPrimaryGreen),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              'Compliance Rate',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: kMuted,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            Text('Compliance Rate',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: kMuted,
+                                    fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -238,124 +305,25 @@ class InspectionSummaryScreen extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: kPrimaryGreen.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '$yesCount',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 20,
-                                    color: kPrimaryGreen,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Yes',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
-                                color: kPrimaryGreen,
-                              ),
-                            ),
-                            Text(
-                              'Compliant',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: kMuted,
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: _StatCircle(
+                            count: yesCount,
+                            label: 'Yes',
+                            sub: 'Compliant',
+                            color: kPrimaryGreen),
                       ),
                       Expanded(
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '$noCount',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 20,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'No',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
-                                color: Colors.red,
-                              ),
-                            ),
-                            Text(
-                              'Non-Compliant',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: kMuted,
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: _StatCircle(
+                            count: noCount,
+                            label: 'No',
+                            sub: 'Non-Compliant',
+                            color: Colors.red),
                       ),
                       Expanded(
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: kMuted.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '$totalItems',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 20,
-                                    color: kMuted,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Total',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
-                                color: kMuted,
-                              ),
-                            ),
-                            Text(
-                              'Items',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: kMuted,
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: _StatCircle(
+                            count: totalItems,
+                            label: 'Total',
+                            sub: 'Items',
+                            color: kMuted),
                       ),
                     ],
                   ),
@@ -364,7 +332,7 @@ class InspectionSummaryScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Progress bar visualization
+            // ── Compliance bar ─────────────────────────────────────
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -375,40 +343,41 @@ class InspectionSummaryScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Compliance Overview',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      color: kText,
-                    ),
-                  ),
+                  const Text('Compliance Overview',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          color: kText)),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(
-                        flex: yesCount,
-                        child: Container(
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: kPrimaryGreen,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(8),
-                              bottomLeft: Radius.circular(8),
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Yes $yesCount',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
+                      if (yesCount > 0)
+                        Expanded(
+                          flex: yesCount,
+                          child: Container(
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: kPrimaryGreen,
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(8),
+                                bottomLeft: const Radius.circular(8),
+                                topRight: noCount == 0
+                                    ? const Radius.circular(8)
+                                    : Radius.zero,
+                                bottomRight: noCount == 0
+                                    ? const Radius.circular(8)
+                                    : Radius.zero,
                               ),
+                            ),
+                            child: Center(
+                              child: Text('Yes $yesCount',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 12)),
                             ),
                           ),
                         ),
-                      ),
                       if (noCount > 0)
                         Expanded(
                           flex: noCount,
@@ -417,19 +386,22 @@ class InspectionSummaryScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Colors.red,
                               borderRadius: BorderRadius.only(
-                                topRight: Radius.circular(8),
-                                bottomRight: Radius.circular(8),
+                                topRight: const Radius.circular(8),
+                                bottomRight: const Radius.circular(8),
+                                topLeft: yesCount == 0
+                                    ? const Radius.circular(8)
+                                    : Radius.zero,
+                                bottomLeft: yesCount == 0
+                                    ? const Radius.circular(8)
+                                    : Radius.zero,
                               ),
                             ),
                             child: Center(
-                              child: Text(
-                                'No $noCount',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 12,
-                                ),
-                              ),
+                              child: Text('No $noCount',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 12)),
                             ),
                           ),
                         ),
@@ -440,28 +412,22 @@ class InspectionSummaryScreen extends StatelessWidget {
                     value: yesPercentage / 100,
                     minHeight: 8,
                     backgroundColor: Colors.red.withOpacity(0.3),
-                    valueColor: const AlwaysStoppedAnimation<Color>(kPrimaryGreen),
+                    valueColor:
+                    const AlwaysStoppedAnimation<Color>(kPrimaryGreen),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '0%',
-                        style: TextStyle(fontSize: 11, color: kMuted),
-                      ),
-                      Text(
-                        '${yesPercentage.toStringAsFixed(0)}% Compliant',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: kPrimaryGreen,
-                        ),
-                      ),
-                      Text(
-                        '100%',
-                        style: TextStyle(fontSize: 11, color: kMuted),
-                      ),
+                      Text('0%',
+                          style: TextStyle(fontSize: 11, color: kMuted)),
+                      Text('${yesPercentage.toStringAsFixed(0)}% Compliant',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: kPrimaryGreen)),
+                      Text('100%',
+                          style: TextStyle(fontSize: 11, color: kMuted)),
                     ],
                   ),
                 ],
@@ -469,7 +435,7 @@ class InspectionSummaryScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Checklist summary
+            // ── Detailed results ───────────────────────────────────
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -484,14 +450,11 @@ class InspectionSummaryScreen extends StatelessWidget {
                     children: [
                       Icon(Icons.checklist, size: 20, color: kPrimaryGreen),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Detailed Results',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                          color: kText,
-                        ),
-                      ),
+                      const Text('Detailed Results',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              color: kText)),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -515,55 +478,58 @@ class InspectionSummaryScreen extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     item.title,
                                     style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 13,
-                                      color: kText,
-                                    ),
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13,
+                                        color: kText),
                                   ),
                                   const SizedBox(height: 4),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
+                                        horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: item.selectedValue == 'YES'
                                           ? kPrimaryGreen.withOpacity(0.1)
                                           : Colors.red.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius:
+                                      BorderRadius.circular(12),
                                     ),
                                     child: Text(
                                       'Response: ${item.selectedValue}',
                                       style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: item.selectedValue == 'YES'
-                                            ? kPrimaryGreen
-                                            : Colors.red,
-                                      ),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color:
+                                          item.selectedValue == 'YES'
+                                              ? kPrimaryGreen
+                                              : Colors.red),
                                     ),
                                   ),
-                                  if (item.comment != null && item.comment!.isNotEmpty)
+                                  if (item.comment != null &&
+                                      item.comment!.isNotEmpty)
                                     Padding(
-                                      padding: const EdgeInsets.only(top: 8),
+                                      padding:
+                                      const EdgeInsets.only(top: 8),
                                       child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                         children: [
-                                          Icon(Icons.comment_outlined, size: 12, color: kMuted),
+                                          Icon(Icons.comment_outlined,
+                                              size: 12, color: kMuted),
                                           const SizedBox(width: 4),
                                           Expanded(
                                             child: Text(
                                               'Comment: ${item.comment}',
                                               style: TextStyle(
-                                                fontSize: 11,
-                                                color: kMuted,
-                                                fontStyle: FontStyle.italic,
-                                              ),
+                                                  fontSize: 11,
+                                                  color: kMuted,
+                                                  fontStyle:
+                                                  FontStyle.italic),
                                             ),
                                           ),
                                         ],
@@ -583,7 +549,7 @@ class InspectionSummaryScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Action buttons
+            // ── Action buttons ─────────────────────────────────────
             Row(
               children: [
                 Expanded(
@@ -594,34 +560,26 @@ class InspectionSummaryScreen extends StatelessWidget {
                       side: const BorderSide(color: kPrimaryGreen),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                          borderRadius: BorderRadius.circular(14)),
                     ),
-                    child: const Text(
-                      'Back to Home',
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
+                    child: const Text('Back to Home',
+                        style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      Get.offAllNamed(AppRoutes.homepageScreen);
-                    },
+                    onPressed: () => Get.offAllNamed(AppRoutes.homepageScreen),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kPrimaryGreen,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                          borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'Done',
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
+                    child: const Text('Done',
+                        style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
                 ),
               ],
@@ -629,6 +587,50 @@ class InspectionSummaryScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StatCircle extends StatelessWidget {
+  final int count;
+  final String label;
+  final String sub;
+  final Color color;
+
+  const _StatCircle({
+    required this.count,
+    required this.label,
+    required this.sub,
+    required this.color,
+  });
+
+  static const Color kMuted = Color(0xFF64748B);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              '$count',
+              style: TextStyle(
+                  fontWeight: FontWeight.w900, fontSize: 20, color: color),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(label,
+            style: TextStyle(
+                fontWeight: FontWeight.w800, fontSize: 14, color: color)),
+        Text(sub, style: TextStyle(fontSize: 11, color: kMuted)),
+      ],
     );
   }
 }

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:local_govt_mw/core/services/offline_sync_service.dart';
+import 'package:local_govt_mw/data/local/database_helper.dart';
+import 'package:local_govt_mw/data/local/user_dao.dart';
+import 'package:local_govt_mw/features/auth/controllers/login_controller.dart';
 import 'package:local_govt_mw/features/onboarding/controllers/onboarding_controller.dart';
 import 'features/splash/domain/models/splash_model.dart';
 import 'features/splash/controllers/splash_controller.dart';
@@ -12,18 +16,34 @@ import 'core/services/api_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize splash model & network info
+  // ── 1. Initialize SQLite database ────────────────────────────────
+  final db = DatabaseHelper();
+  await db.database; // triggers onCreate / onUpgrade if needed
+
+  // ── 2. Register ApiService permanently ───────────────────────────
+  final apiService = ApiService();
+  await Get.putAsync<ApiService>(() async => apiService, permanent: true);
+
+  // ── 3. Register OfflineSyncService permanently ───────────────────
+  Get.put<OfflineSyncService>(OfflineSyncService(), permanent: true);
+
+  // ── 4. Determine initial route based on stored session ───────────
+  final userDao = UserDao();
+  final isLoggedIn = await userDao.isLoggedIn();
+  final initialRoute = isLoggedIn
+      ? AppRoutes.appNavigationScreen
+      : AppRoutes.splashScreen;
+
+  debugPrint('MAIN: isLoggedIn=$isLoggedIn → initialRoute=$initialRoute');
+
+  // ── 5. Splash / network setup ─────────────────────────────────────
   final splashModel = SplashModel(
-    appName: 'NAML',
+    appName: 'Local Govt Mw',
     slogan: 'Building Better Together',
-    logoPath: 'assets/images/icon.png', // Make sure this exists in assets
+    logoPath: 'assets/images/icon.png',
   );
 
   final networkInfo = NetworkInfo(Connectivity());
-
-  // Initialize ApiService and register with GetX
-  final apiService = ApiService();
-  await Get.putAsync<ApiService>(() async => apiService);
 
   runApp(
     MultiProvider(
@@ -38,21 +58,23 @@ Future<void> main() async {
           create: (_) => OnboardingController(),
         ),
       ],
-      child: const MyApp(),
+      child: MyApp(initialRoute: initialRoute),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+
+  const MyApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
-    // Start connectivity listener
-    final splashController = Provider.of<SplashController>(context, listen: false);
+    final splashController =
+    Provider.of<SplashController>(context, listen: false);
     splashController.startConnectivityListener(context);
 
-    return GetMaterialApp(   // Use GetMaterialApp instead of MaterialApp
+    return GetMaterialApp(
       title: 'My Council App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -61,8 +83,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      initialRoute: AppRoutes.splashScreen,
-      getPages: AppRoutes.pages, // GetX route definitions
+      initialRoute: initialRoute,
+      getPages: AppRoutes.pages,
     );
   }
 }
