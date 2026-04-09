@@ -11,7 +11,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String dbName = 'local_govt_mw.db';
-  static const int dbVersion = 4; // Updated to version 4
+  static const int dbVersion = 5; // Updated to version 5
 
   // Table names
   static const String tableUsers = 'users';
@@ -19,6 +19,7 @@ class DatabaseHelper {
   static const String tableChecklistItems = 'checklist_items';
   static const String tablePendingSubmissions = 'pending_submissions';
   static const String tableChecklistCache = 'checklist_cache';
+  static const String tableNotifications = 'notifications';
 
   Future<Database> get database async {
     _database ??= await _initDatabase();
@@ -108,6 +109,21 @@ class DatabaseHelper {
         error_message TEXT
       )
     ''');
+
+    // Notifications table
+    await db.execute('''
+      CREATE TABLE $tableNotifications (
+        id TEXT PRIMARY KEY,
+        assignment_id TEXT,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        business_name TEXT,
+        reference_number TEXT,
+        status TEXT,
+        created_at INTEGER NOT NULL,
+        is_read INTEGER DEFAULT 0
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -117,7 +133,6 @@ class DatabaseHelper {
       ''');
     }
     if (oldVersion < 3) {
-      // Re-create checklist cache table if it doesn't exist
       await db.execute('''
         CREATE TABLE IF NOT EXISTS $tableChecklistCache (
           license_type_id TEXT NOT NULL,
@@ -128,10 +143,8 @@ class DatabaseHelper {
         )
       ''');
     }
-    // Add council_code column when upgrading from version 3 to 4
     if (oldVersion < 4) {
       try {
-        // Check if column exists before adding
         final columns = await db.rawQuery('PRAGMA table_info($tableUsers)');
         final hasCouncilCode = columns.any((col) => col['name'] == 'council_code');
         if (!hasCouncilCode) {
@@ -140,6 +153,26 @@ class DatabaseHelper {
         }
       } catch (e) {
         debugPrint('DB: Error adding council_code column: $e');
+      }
+    }
+    if (oldVersion < 5) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS $tableNotifications (
+            id TEXT PRIMARY KEY,
+            assignment_id TEXT,
+            title TEXT NOT NULL,
+            body TEXT NOT NULL,
+            business_name TEXT,
+            reference_number TEXT,
+            status TEXT,
+            created_at INTEGER NOT NULL,
+            is_read INTEGER DEFAULT 0
+          )
+        ''');
+        debugPrint('DB: Created notifications table');
+      } catch (e) {
+        debugPrint('DB: Error creating notifications table: $e');
       }
     }
   }
@@ -390,6 +423,67 @@ class DatabaseHelper {
   }
 
   // ============================================================
+  // NOTIFICATION METHODS
+  // ============================================================
+
+  Future<void> insertNotification(Map<String, dynamic> notification) async {
+    final db = await database;
+    await db.insert(
+      tableNotifications,
+      notification,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getNotifications() async {
+    final db = await database;
+    return await db.query(
+      tableNotifications,
+      orderBy: 'created_at DESC',
+    );
+  }
+
+  Future<void> markNotificationAsRead(String id) async {
+    final db = await database;
+    await db.update(
+      tableNotifications,
+      {'is_read': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> markAllNotificationsAsRead() async {
+    final db = await database;
+    await db.update(
+      tableNotifications,
+      {'is_read': 1},
+    );
+  }
+
+  Future<void> deleteNotification(String id) async {
+    final db = await database;
+    await db.delete(
+      tableNotifications,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> clearAllNotifications() async {
+    final db = await database;
+    await db.delete(tableNotifications);
+  }
+
+  Future<int> getUnreadNotificationCount() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM $tableNotifications WHERE is_read = 0',
+    );
+    return (result.first['count'] as int?) ?? 0;
+  }
+
+  // ============================================================
   // PENDING SUBMISSIONS METHODS
   // ============================================================
 
@@ -500,6 +594,7 @@ class DatabaseHelper {
     await db.delete(tableAssignments);
     await db.delete(tableChecklistCache);
     await db.delete(tablePendingSubmissions);
+    await db.delete(tableNotifications);
     debugPrint('DB: All data cleared');
   }
 

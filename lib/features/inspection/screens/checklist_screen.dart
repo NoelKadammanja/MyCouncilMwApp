@@ -6,6 +6,7 @@ import 'package:local_govt_mw/core/services/offline_sync_service.dart';
 import 'package:local_govt_mw/features/inspection/models/inspection_model.dart';
 import 'package:local_govt_mw/features/inspection/screens/inspection_summary_screen.dart';
 import 'package:local_govt_mw/features/inspection/widgets/comment_dialog.dart';
+import 'package:local_govt_mw/widgets/custom_app_bar.dart';
 
 class ChecklistScreen extends StatefulWidget {
   final InspectionAssignment assignment;
@@ -340,42 +341,22 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBg,
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.assignment.businessName,
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-              ),
-            ),
-            Text(
-              _isLoading
-                  ? 'Loading checklist...'
-                  : _licenseTypeId == null
-                  ? 'No license type found'
-                  : '$_licenseTypeName Inspection${_loadedFromCache ? ' (Offline)' : ''}',
-              style: TextStyle(
-                fontSize: 12,
-                color: _loadedFromCache ? Colors.orange : kMuted,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: kText,
-        centerTitle: false,
+      appBar: CustomAppBar(
+        title: widget.assignment.businessName,
+        showBackButton: true,
         actions: [
           // Offline indicator
           if (_loadedFromCache)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Chip(
-                label: const Text(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange),
+                ),
+                child: const Text(
                   'OFFLINE',
                   style: TextStyle(
                     fontSize: 10,
@@ -383,19 +364,15 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     color: Colors.orange,
                   ),
                 ),
-                backgroundColor: Colors.orange.withOpacity(0.1),
-                side: const BorderSide(color: Colors.orange),
-                padding: EdgeInsets.zero,
               ),
             ),
 
           if (!_isLoading && _checklistItems.isNotEmpty)
             Container(
-              margin: const EdgeInsets.only(right: 16),
-              padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: kPrimaryGreen.withOpacity(0.1),
+                color: kPrimaryGreen.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -403,14 +380,14 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   Icon(
                     Icons.check_circle,
                     size: 16,
-                    color: kPrimaryGreen,
+                    color: Colors.white,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '$_completedCount/$_totalCount',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontWeight: FontWeight.w900,
-                      color: kPrimaryGreen,
+                      color: Colors.white,
                       fontSize: 12,
                     ),
                   ),
@@ -687,7 +664,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CHECKLIST TILE WIDGET (unchanged)
+// CHECKLIST TILE WIDGET
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ChecklistTile extends StatelessWidget {

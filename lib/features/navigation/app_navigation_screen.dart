@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:local_govt_mw/features/home/screens/homepage_screen.dart';
 import 'package:local_govt_mw/features/profile/screens/profile_screen.dart';
+import 'package:local_govt_mw/features/inspection/screens/assignments_screen.dart';
 
 class AppNavigationScreen extends StatefulWidget {
   const AppNavigationScreen({super.key});
@@ -17,7 +18,7 @@ class _AppNavigationScreenState extends State<AppNavigationScreen> {
 
   final List<Widget> _pages = [
     const HomepageScreen(),
-    const ProfilePage(),
+    const AssignmentsScreen(), // Changed from ProfilePage to AssignmentsScreen
     const ProfilePage(),
   ];
 
@@ -67,9 +68,9 @@ class _AppNavigationScreenState extends State<AppNavigationScreen> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.report_outlined),
-              activeIcon: Icon(Icons.report),
-              label: 'Reports',
+              icon: Icon(Icons.assignment_turned_in_outlined),
+              activeIcon: Icon(Icons.assignment_turned_in),
+              label: 'My Assignments',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),

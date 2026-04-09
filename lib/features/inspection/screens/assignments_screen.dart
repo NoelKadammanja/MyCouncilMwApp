@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:local_govt_mw/features/inspection/controllers/assignments_controller.dart';
 import 'package:local_govt_mw/features/inspection/models/inspection_model.dart';
 import 'package:local_govt_mw/features/inspection/screens/checklist_screen.dart';
+import 'package:local_govt_mw/widgets/custom_app_bar.dart';
 
 class AssignmentsScreen extends StatelessWidget {
   const AssignmentsScreen({super.key});
@@ -16,21 +17,11 @@ class AssignmentsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
-      appBar: AppBar(
-        title: const Text(
-          'Inspection Assignments',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 20,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: const Color(0xFF0F172A),
-        centerTitle: false,
+      appBar: CustomAppBar(
+        title: 'Assignments',
+        showBackButton: true,
         actions: [
           Obx(() {
-            // ✅ Read .value explicitly at top of Obx so GetX registers the subscription
             final isLoading = controller.isLoading.value;
             return IconButton(
               onPressed: isLoading ? null : controller.refreshAssignments,
@@ -38,9 +29,12 @@ class AssignmentsScreen extends StatelessWidget {
                   ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               )
-                  : const Icon(Icons.refresh),
+                  : const Icon(Icons.refresh, color: Colors.white),
             );
           }),
         ],

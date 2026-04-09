@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:local_govt_mw/core/services/offline_sync_service.dart';
 import 'package:local_govt_mw/features/inspection/models/inspection_model.dart';
 import 'package:local_govt_mw/routes/app_routes.dart';
+import 'package:local_govt_mw/widgets/custom_app_bar.dart';
 
 class InspectionSummaryScreen extends StatelessWidget {
   final InspectionReport report;
@@ -72,22 +73,9 @@ class InspectionSummaryScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: kBg,
-      appBar: AppBar(
-        title: const Text(
-          'Inspection Summary',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: kText,
-        centerTitle: false,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            onPressed: () => Get.offAllNamed(AppRoutes.homepageScreen),
-            icon: const Icon(Icons.home),
-          ),
-        ],
+      appBar: CustomAppBar(
+        title: 'Inspection Summary',
+        showBackButton: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

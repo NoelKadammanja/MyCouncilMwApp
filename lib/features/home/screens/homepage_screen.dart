@@ -11,6 +11,8 @@ import 'package:local_govt_mw/routes/app_routes.dart';
 import 'package:local_govt_mw/features/inspection/screens/assignments_screen.dart';
 import 'package:local_govt_mw/features/inspection/controllers/assignments_controller.dart';
 import 'package:local_govt_mw/features/inspection/models/inspection_model.dart';
+import 'package:local_govt_mw/widgets/custom_app_bar.dart';
+import 'package:local_govt_mw/services/notification_service.dart';
 
 class HomepageScreen extends StatefulWidget {
   const HomepageScreen({super.key});
@@ -131,18 +133,28 @@ class _HomepageScreenState extends State<HomepageScreen> {
     // Wait for assignments to load
     await Future.delayed(const Duration(milliseconds: 500));
 
+    final currentAssignments = _assignmentsController.assignments.toList();
+
     setState(() {
-      totalAssignments = _assignmentsController.assignments.length;
-      pendingAssignments = _assignmentsController.assignments
+      totalAssignments = currentAssignments.length;
+      pendingAssignments = currentAssignments
           .where((a) => a.formattedStatus == 'Pending')
           .length;
-      completedAssignments = _assignmentsController.assignments
+      completedAssignments = currentAssignments
           .where((a) => a.formattedStatus == 'Completed')
           .length;
-
-      // Get recent assignments (last 5)
-      recentAssignments = _assignmentsController.assignments.take(5).toList();
+      recentAssignments = currentAssignments.take(5).toList();
     });
+
+    // Check for new assignments and send notifications
+    try {
+      if (Get.isRegistered<NotificationService>()) {
+        final notificationService = Get.find<NotificationService>();
+        await notificationService.checkForNewAssignments(currentAssignments);
+      }
+    } catch (e) {
+      debugPrint('Error checking notifications: $e');
+    }
   }
 
   // Revenue collector helper methods
@@ -344,31 +356,9 @@ class _HomepageScreenState extends State<HomepageScreen> {
 
     return Scaffold(
       backgroundColor: kBg,
-      appBar: AppBar(
-        elevation: 0,
-        centerTitle: false,
-        titleSpacing: 12,
-        backgroundColor: Colors.transparent,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF66BB6A), Color(0xFF1E7F4F)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: SizedBox(
-          height: 40,
-          child: Image.asset('assets/images/mglogo.png', fit: BoxFit.contain),
-        ),
-        actions: [
-          _appBarIcon(Icons.notifications_none,
-              onTap: () => Get.toNamed(AppRoutes.notificationScreen), showDot: true),
-          const SizedBox(width: 8),
-          _appBarIcon(Icons.more_horiz, onTap: () {}),
-          const SizedBox(width: 10),
-        ],
+      appBar: CustomAppBar(
+        title: showInspectorView ? 'Inspector Home' : 'Revenue Collection',
+        showBackButton: false,
       ),
       body: SafeArea(
         top: false,
@@ -376,11 +366,10 @@ class _HomepageScreenState extends State<HomepageScreen> {
             ? _buildInspectorView()
             : showRevenueView
             ? _buildRevenueCollectorView()
-            : _buildDefaultView(), // Fallback for unknown roles
+            : _buildDefaultView(),
       ),
     );
   }
-
   // ===========================================================================
   // INSPECTOR VIEW
   // ===========================================================================
