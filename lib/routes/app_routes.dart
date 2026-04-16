@@ -5,8 +5,8 @@ import 'package:local_govt_mw/features/auth/screens/login_screen.dart';
 import 'package:local_govt_mw/features/auth/screens/otp_screen.dart';
 import 'package:local_govt_mw/features/home/domain/binding/homepage_binding.dart';
 import 'package:local_govt_mw/features/home/screens/homepage_screen.dart';
-import 'package:local_govt_mw/features/onboarding/domain/binding/onboarding_binding.dart';
-import 'package:local_govt_mw/features/onboarding/screens/onboarding_screen.dart';
+// import 'package:local_govt_mw/features/onboarding/domain/binding/onboarding_binding.dart';
+// import 'package:local_govt_mw/features/onboarding/screens/onboarding_screen.dart';
 import 'package:local_govt_mw/features/navigation/app_navigation_screen.dart';
 import 'package:local_govt_mw/features/splash/screens/splash_screen.dart';
 import 'package:local_govt_mw/features/inspection/screens/assignments_screen.dart';
@@ -37,13 +37,13 @@ class AppRoutes {
       page: () => const SplashScreen(),
     ),
 
-    GetPage(
-      name: onboardingScreen,
-      page: () => OnboardingScreen(),
-      bindings: [
-        OnboardingBinding(),
-      ],
-    ),
+    // GetPage(
+    //   name: onboardingScreen,
+    //   page: () => OnboardingScreen(),
+    //   bindings: [
+    //     OnboardingBinding(),
+    //   ],
+    // ),
 
     GetPage(
       name: loginScreen,

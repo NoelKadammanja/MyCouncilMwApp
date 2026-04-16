@@ -45,23 +45,48 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   @override
   void initState() {
     super.initState();
-    _getLicenseTypeIdAndFetchChecklist();
+    // Use addPostFrameCallback to avoid calling setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _getLicenseTypeIdAndFetchChecklist();
+    });
+  }
+
+  // Safe method to show snackbars (ensures they're shown after build)
+  void _showSafeSnackbar(String title, String message, {Color backgroundColor = Colors.red, int duration = 3}) {
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Get.snackbar(
+            title,
+            message,
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: backgroundColor,
+            colorText: Colors.white,
+            duration: Duration(seconds: duration),
+            margin: const EdgeInsets.all(12),
+          );
+        }
+      });
+    }
   }
 
   Future<void> _getLicenseTypeIdAndFetchChecklist() async {
+    // Check if widget is still mounted
+    if (!mounted) return;
+
     final licenseTypeId = widget.assignment.licenseTypeId;
 
     if (licenseTypeId == null || licenseTypeId.isEmpty) {
-      setState(() {
-        _errorMessage = 'No license type ID found for this assignment.';
-        _isLoading = false;
-      });
-      Get.snackbar(
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'No license type ID found for this assignment.';
+          _isLoading = false;
+        });
+      }
+      _showSafeSnackbar(
         'Error',
         'This assignment does not have a license type associated with it.',
-        snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
-        colorText: Colors.white,
       );
       return;
     }
@@ -71,108 +96,167 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   }
 
   Future<void> _fetchChecklistFromApi() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final endpoint =
-          '/api/v1/inspection/subcategories/full-tree/$_licenseTypeId';
+      final endpoint = '/api/v1/inspection/subcategories/full-tree/$_licenseTypeId';
       debugPrint('Fetching checklist from: $endpoint');
 
       final response = await _apiService.get(endpoint);
       debugPrint('Checklist API Response: $response');
 
+      // Validate response structure before parsing
+      if (response == null || !response.containsKey('categories')) {
+        throw Exception('Invalid response format from server');
+      }
+
       _parseChecklistResponse(response);
       _loadedFromCache = false;
 
-      // Cache the checklist for offline use
-      await _syncService.cacheChecklist(
-        _licenseTypeId!,
-        _licenseTypeName,
-        response,
-      );
+      // Only cache if we have valid data
+      if (_checklistItems.isNotEmpty) {
+        await _syncService.cacheChecklist(
+          _licenseTypeId!,
+          _licenseTypeName,
+          response,
+        );
+      }
     } catch (e) {
       debugPrint('Checklist API failed, trying local cache: $e');
 
       // Try loading from local cache
-      final cached = await _syncService.getCachedChecklist(_licenseTypeId!);
-      if (cached != null) {
-        _parseChecklistResponse(cached);
-        _loadedFromCache = true;
+      try {
+        final cached = await _syncService.getCachedChecklist(_licenseTypeId!);
+        if (cached != null && cached.containsKey('categories')) {
+          _parseChecklistResponse(cached);
+          _loadedFromCache = true;
 
-        Get.snackbar(
-          'Offline Mode',
-          'Checklist loaded from cache. Answers will sync when online.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 4),
-          margin: const EdgeInsets.all(12),
-        );
-      } else {
-        debugPrint('No cached checklist available: $e');
-        setState(() {
-          _errorMessage = e.toString();
-        });
-        Get.snackbar(
+          _showSafeSnackbar(
+            'Offline Mode',
+            'Checklist loaded from cache. Answers will sync when online.',
+            backgroundColor: Colors.orange,
+            duration: 4,
+          );
+        } else {
+          throw Exception('No valid cached checklist available');
+        }
+      } catch (cacheError) {
+        debugPrint('No cached checklist available: $cacheError');
+        if (mounted) {
+          setState(() {
+            _errorMessage = _getUserFriendlyErrorMessage(e);
+          });
+        }
+        _showSafeSnackbar(
           'Error',
-          'Failed to load checklist and no cached version available.',
-          snackPosition: SnackPosition.BOTTOM,
+          _getUserFriendlyErrorMessage(e),
           backgroundColor: Colors.red,
-          colorText: Colors.white,
         );
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _getUserFriendlyErrorMessage(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    if (errorStr.contains('timeout') || errorStr.contains('network')) {
+      return 'Network error. Please check your internet connection.';
+    } else if (errorStr.contains('401') || errorStr.contains('unauthorized')) {
+      return 'Session expired. Please log in again.';
+    } else if (errorStr.contains('403') || errorStr.contains('forbidden')) {
+      return 'You don\'t have permission to access this inspection.';
+    } else if (errorStr.contains('404')) {
+      return 'Checklist not found. Please contact support.';
+    } else if (errorStr.contains('500')) {
+      return 'Server error. Please try again later.';
+    } else {
+      return 'Failed to load checklist. Please check your connection and try again.';
     }
   }
 
   void _parseChecklistResponse(Map<String, dynamic> response) {
-    if (response.containsKey('categories')) {
-      final List<dynamic> categories = response['categories'];
-      _licenseTypeName = response['licenseTypeName'] ?? 'Inspection';
+    try {
+      if (!response.containsKey('categories')) {
+        throw Exception('Invalid response format: missing categories');
+      }
+
+      final List<dynamic> categories = response['categories'] ?? [];
+      if (categories.isEmpty) {
+        throw Exception('No categories found in the response');
+      }
+
+      // Safely get licenseTypeName with fallback
+      _licenseTypeName = response['licenseTypeName']?.toString() ??
+          response['licenseTypeId']?.toString() ??
+          'Inspection';
 
       final List<ChecklistItem> items = [];
 
       for (var category in categories) {
-        final categoryName =
-            category['description']?.toString() ?? 'Uncategorized';
+        if (category == null) continue;
+
+        final categoryName = category['description']?.toString() ?? 'Uncategorized';
         final List<dynamic> categoryItems = category['items'] ?? [];
 
         if (categoryItems.isNotEmpty) {
           for (var item in categoryItems) {
+            if (item == null) continue;
+            final itemId = item['id']?.toString();
+            final itemDescription = item['description']?.toString();
+
+            if (itemId == null || itemId.isEmpty) {
+              debugPrint('Skipping item with missing ID: $item');
+              continue;
+            }
+
             items.add(ChecklistItem(
-              id: item['id']?.toString() ?? '',
-              title: item['description']?.toString() ?? '',
-              description: item['description']?.toString() ?? '',
+              id: itemId,
+              title: itemDescription ?? 'Unnamed item',
+              description: itemDescription ?? 'No description provided',
               selectedValue: null,
               comment: null,
               category: categoryName,
             ));
           }
         } else {
-          items.add(ChecklistItem(
-            id: category['id']?.toString() ?? '',
-            title: categoryName,
-            description:
-            'Check if ${categoryName.toLowerCase()} meets the required standards',
-            selectedValue: null,
-            comment: null,
-            category: 'General',
-          ));
+          // Handle empty category - still add as an item
+          final categoryId = category['id']?.toString();
+          if (categoryId != null && categoryId.isNotEmpty) {
+            items.add(ChecklistItem(
+              id: categoryId,
+              title: categoryName,
+              description: 'Check if ${categoryName.toLowerCase()} meets the required standards',
+              selectedValue: null,
+              comment: null,
+              category: 'General',
+            ));
+          }
         }
+      }
+
+      if (items.isEmpty) {
+        throw Exception('No checklist items found. The inspection form may be empty.');
       }
 
       _checklistItems = items;
       _categories = ['All', ...items.map((e) => e.category).toSet().toList()];
 
       debugPrint('Total checklist items loaded: ${_checklistItems.length}');
-    } else {
-      throw Exception('Invalid response format from server');
+      debugPrint('Categories found: $_categories');
+
+    } catch (e) {
+      debugPrint('Error parsing checklist response: $e');
+      throw Exception('Failed to parse checklist data: ${e.toString()}');
     }
   }
 
@@ -196,18 +280,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         .toList();
   }
 
-  // ──────────────────────────────────────────────────────────────────
-  // SUBMIT (online-first with offline fallback)
-  // ──────────────────────────────────────────────────────────────────
-
   Future<void> _submitInspection() async {
     if (!_canSubmit) {
-      Get.snackbar(
+      _showSafeSnackbar(
         'Cannot Submit',
         'Please answer all checklist items before submitting.',
-        snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.orange,
-        colorText: Colors.white,
       );
       return;
     }
@@ -237,7 +315,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       debugPrint('Number of results: ${results.length}');
       debugPrint('Request body: ${jsonEncode(requestBody)}');
 
-      // Use OfflineSyncService for submit (handles online/offline automatically)
       final submitResult = await _syncService.submitInspection(
         applicationId: widget.assignment.id,
         businessName: widget.assignment.businessName,
@@ -258,62 +335,64 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
             : 'pending_sync',
       );
 
-      // Navigate to summary screen – pass the submit result so we can show
-      // an appropriate message there too.
-      Get.off(() => InspectionSummaryScreen(
-        report: report,
-        placeName: widget.assignment.businessName,
-        savedOffline: submitResult == SubmitResult.savedOffline,
-      ));
+      if (mounted) {
+        Get.off(() => InspectionSummaryScreen(
+          report: report,
+          placeName: widget.assignment.businessName,
+          savedOffline: submitResult == SubmitResult.savedOffline,
+        ));
+      }
 
       if (submitResult == SubmitResult.submittedOnline) {
-        Get.snackbar(
+        _showSafeSnackbar(
           'Success',
           'Inspection results submitted successfully!',
-          snackPosition: SnackPosition.BOTTOM,
           backgroundColor: kPrimaryGreen,
-          colorText: Colors.white,
         );
       } else {
-        Get.snackbar(
+        _showSafeSnackbar(
           'Saved Offline',
           'Results saved locally. They will sync when you\'re back online.',
-          snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.orange,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 5),
+          duration: 5,
         );
       }
     } catch (e) {
       debugPrint('Submission error: $e');
 
-      String errorMessage =
-          'Failed to submit inspection results. Please try again.';
-      if (e.toString().contains('500')) {
-        errorMessage =
-        'Server error. The checklist item IDs might not be valid for this application.';
-      } else if (e.toString().contains('400')) {
-        errorMessage =
-        'Invalid data format. Please review your answers and try again.';
-      } else if (e.toString().contains('401')) {
-        errorMessage = 'Session expired. Please log in again.';
-      } else if (e.toString().contains('404')) {
-        errorMessage =
-        'Submission endpoint not found. Please contact support.';
-      }
+      String errorMessage = _getSubmissionErrorMessage(e);
 
-      Get.snackbar(
+      _showSafeSnackbar(
         'Submission Failed',
         errorMessage,
-        snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 5),
+        duration: 5,
       );
     } finally {
-      setState(() {
-        _isSubmitting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  String _getSubmissionErrorMessage(dynamic e) {
+    final errorStr = e.toString().toLowerCase();
+    if (errorStr.contains('500')) {
+      return 'Server error. The checklist might not be valid for this application.';
+    } else if (errorStr.contains('400')) {
+      return 'Invalid data format. Please review your answers and try again.';
+    } else if (errorStr.contains('401')) {
+      return 'Session expired. Please log in again.';
+    } else if (errorStr.contains('403')) {
+      return 'You don\'t have permission to submit this inspection.';
+    } else if (errorStr.contains('404')) {
+      return 'Submission endpoint not found. Please contact support.';
+    } else if (errorStr.contains('timeout')) {
+      return 'Request timed out. Please check your internet connection.';
+    } else {
+      return 'Failed to submit inspection results. Please try again.';
     }
   }
 
@@ -324,14 +403,14 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         itemTitle: item.title,
         initialComment: item.comment,
         onSave: (comment) {
-          setState(() {
-            final index =
-            _checklistItems.indexWhere((i) => i.id == item.id);
-            if (index != -1) {
-              _checklistItems[index].comment =
-              comment.isEmpty ? null : comment;
-            }
-          });
+          if (mounted) {
+            setState(() {
+              final index = _checklistItems.indexWhere((i) => i.id == item.id);
+              if (index != -1) {
+                _checklistItems[index].comment = comment.isEmpty ? null : comment;
+              }
+            });
+          }
         },
       ),
     );
@@ -345,7 +424,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         title: widget.assignment.businessName,
         showBackButton: true,
         actions: [
-          // Offline indicator
           if (_loadedFromCache)
             Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -366,7 +444,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 ),
               ),
             ),
-
           if (!_isLoading && _checklistItems.isNotEmpty)
             Container(
               margin: const EdgeInsets.only(right: 8),
@@ -413,8 +490,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.error_outline,
-                size: 64,
-                color: Colors.red.withOpacity(0.5)),
+                size: 64, color: Colors.red.withOpacity(0.5)),
             const SizedBox(height: 16),
             Text('Failed to load checklist',
                 style: TextStyle(
@@ -425,12 +501,22 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               child: Text(_errorMessage!,
                   textAlign: TextAlign.center),
             ),
+            const SizedBox(height: 16),
+            Text(
+              'Assignment ID: ${widget.assignment.id.substring(0, 8)}...',
+              style: TextStyle(fontSize: 11, color: kMuted),
+            ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _getLicenseTypeIdAndFetchChecklist,
               style: ElevatedButton.styleFrom(
                   backgroundColor: kPrimaryGreen),
               child: const Text('Retry'),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Go Back'),
             ),
           ],
         ),
@@ -441,13 +527,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.checklist_outlined,
-                size: 64,
-                color: kMuted.withOpacity(0.5)),
+                size: 64, color: kMuted.withOpacity(0.5)),
             const SizedBox(height: 16),
             const Text('No checklist items found'),
             const SizedBox(height: 8),
             Text(
-                'There are no inspection items for license type: $_licenseTypeName'),
+                'There are no inspection items for this assignment.'),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => Get.back(),
@@ -460,7 +545,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       )
           : Column(
         children: [
-          // Offline banner
           if (_loadedFromCache)
             Container(
               width: double.infinity,
@@ -485,7 +569,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 ],
               ),
             ),
-
           Container(
             margin: const EdgeInsets.all(16),
             child: Column(
@@ -520,8 +603,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     value: _completionPercentage / 100,
                     minHeight: 8,
                     backgroundColor: kBorder,
-                    valueColor:
-                    const AlwaysStoppedAnimation<Color>(
+                    valueColor: const AlwaysStoppedAnimation<Color>(
                         kPrimaryGreen),
                   ),
                 ),
@@ -537,52 +619,43 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               ],
             ),
           ),
-
           if (_categories.length > 1)
             Container(
               height: 45,
               margin: const EdgeInsets.only(bottom: 8),
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _categories.length,
                 separatorBuilder: (_, __) =>
                 const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final category = _categories[index];
-                  final isSelected =
-                      _selectedCategory == category;
+                  final isSelected = _selectedCategory == category;
                   return FilterChip(
                     label: Text(category),
                     selected: isSelected,
                     onSelected: (_) => setState(
                             () => _selectedCategory = category),
                     backgroundColor: Colors.white,
-                    selectedColor:
-                    kPrimaryGreen.withOpacity(0.1),
+                    selectedColor: kPrimaryGreen.withOpacity(0.1),
                     checkmarkColor: kPrimaryGreen,
                     labelStyle: TextStyle(
-                      color: isSelected
-                          ? kPrimaryGreen
-                          : kMuted,
+                      color: isSelected ? kPrimaryGreen : kMuted,
                       fontWeight: isSelected
                           ? FontWeight.w900
                           : FontWeight.w600,
                     ),
                     side: BorderSide(
-                        color: isSelected
-                            ? kPrimaryGreen
-                            : kBorder),
+                        color: isSelected ? kPrimaryGreen : kBorder),
                   );
                 },
               ),
             ),
-
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _filteredItems.length,
               itemBuilder: (context, index) {
                 final item = _filteredItems[index];
@@ -590,19 +663,16 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   item: item,
                   onValueChanged: (value) {
                     setState(() {
-                      final originalItem =
-                      _checklistItems.firstWhere(
-                              (i) => i.id == item.id);
+                      final originalItem = _checklistItems
+                          .firstWhere((i) => i.id == item.id);
                       originalItem.selectedValue = value;
                     });
                   },
-                  onCommentPressed: () =>
-                      _showCommentDialog(item),
+                  onCommentPressed: () => _showCommentDialog(item),
                 );
               },
             ),
           ),
-
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -619,15 +689,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               child: ElevatedButton(
                 onPressed: _isSubmitting
                     ? null
-                    : (_canSubmit
-                    ? _submitInspection
-                    : null),
+                    : (_canSubmit ? _submitInspection : null),
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                   _canSubmit ? kPrimaryGreen : kMuted,
                   foregroundColor: Colors.white,
-                  minimumSize:
-                  const Size(double.infinity, 50),
+                  minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),

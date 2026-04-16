@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:local_govt_mw/features/onboarding/screens/onboarding_screen.dart';
+// import 'package:local_govt_mw/features/onboarding/screens/onboarding_screen.dart';
 import 'package:local_govt_mw/features/splash/domain/models/splash_model.dart';
 import 'package:local_govt_mw/helper/network_info.dart';
 
@@ -41,19 +41,19 @@ class SplashController extends ChangeNotifier {
 
     if (hasConnection) {
       // Navigate to onboarding screen with fade animation
-      Navigator.of(context).pushReplacement(PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 800),
-        pageBuilder: (_, __, ___) =>
-            // Lazy import prevents circular reference
-            // ignore: prefer_const_constructors
-            OnboardingScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
-        },
-      ));
+      // Navigator.of(context).pushReplacement(PageRouteBuilder(
+      //   transitionDuration: const Duration(milliseconds: 800),
+      //   pageBuilder: (_, __, ___) =>
+      //       // Lazy import prevents circular reference
+      //       // ignore: prefer_const_constructors
+      //       OnboardingScreen(),
+      //   transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      //     return FadeTransition(
+      //       opacity: animation,
+      //       child: child,
+      //     );
+      //   },
+      // ));
     } else {
       // If offline, stay and retry later
       notifyListeners();

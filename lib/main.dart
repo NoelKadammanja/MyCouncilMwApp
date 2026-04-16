@@ -7,7 +7,7 @@ import 'package:local_govt_mw/core/services/offline_sync_service.dart';
 import 'package:local_govt_mw/data/local/database_helper.dart';
 import 'package:local_govt_mw/data/local/user_dao.dart';
 import 'package:local_govt_mw/features/auth/controllers/login_controller.dart';
-import 'package:local_govt_mw/features/onboarding/controllers/onboarding_controller.dart';
+// import 'package:local_govt_mw/features/onboarding/controllers/onboarding_controller.dart';
 import 'package:local_govt_mw/services/notification_service.dart';
 import 'features/splash/domain/models/splash_model.dart';
 import 'features/splash/controllers/splash_controller.dart';
@@ -64,9 +64,9 @@ Future<void> main() async {
             networkInfo: networkInfo,
           )..checkNetworkStatus(),
         ),
-        ChangeNotifierProvider(
-          create: (_) => OnboardingController(),
-        ),
+        // ChangeNotifierProvider(
+        //   create: (_) => OnboardingController(),
+        // ),
       ],
       child: MyApp(initialRoute: initialRoute),
     ),
