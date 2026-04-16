@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:local_govt_mw/common/basewidget/custom_image_view.dart';
 import 'package:local_govt_mw/features/profile/controllers/profile_controller.dart';
 import 'package:local_govt_mw/features/profile/domain/profile_model.dart';
@@ -15,6 +16,7 @@ import 'package:local_govt_mw/utill/size_utils.dart';
 import 'package:local_govt_mw/utill/pref_utils.dart';
 import 'package:local_govt_mw/data/local/user_dao.dart';
 import 'package:flutter/material.dart';
+import 'package:local_govt_mw/widgets/custom_app_bar.dart';
 
 // ignore_for_file: must_be_immutable
 class ProfilePage extends StatelessWidget {
@@ -84,9 +86,10 @@ class ProfilePage extends StatelessWidget {
                                         "Quick Actions".tr,
                                         overflow: TextOverflow.ellipsis,
                                         textAlign: TextAlign.left,
-                                        style: AppStyle.txtInterBold14Gray800
-                                            .copyWith(
-                                          height: getVerticalSize(1.19),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w900,
+                                          color: const Color(0xFF0F172A),
                                         ),
                                       ),
                                       GestureDetector(
@@ -162,13 +165,10 @@ class ProfilePage extends StatelessWidget {
                                                       overflow:
                                                       TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
-                                                      style: AppStyle
-                                                          .txtInterMedium16
-                                                          .copyWith(
-                                                        height:
-                                                        getVerticalSize(
-                                                          1.24,
-                                                        ),
+                                                      style: GoogleFonts.poppins(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w500,
+                                                        color: const Color(0xFF0F172A),
                                                       ),
                                                     ),
                                                   ),
@@ -263,13 +263,10 @@ class ProfilePage extends StatelessWidget {
                                                       overflow:
                                                       TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
-                                                      style: AppStyle
-                                                          .txtInterMedium16
-                                                          .copyWith(
-                                                        height:
-                                                        getVerticalSize(
-                                                          1.24,
-                                                        ),
+                                                      style: GoogleFonts.poppins(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w500,
+                                                        color: const Color(0xFF0F172A),
                                                       ),
                                                     ),
                                                   ),
@@ -313,16 +310,9 @@ class ProfilePage extends StatelessWidget {
                                                         SizedBox(height: 8),
                                                         Text(
                                                           'Language'.tr,
-                                                          style: AppStyle
-                                                              .txtInterSemiBold20
-                                                              .copyWith(
-                                                            color: AppStyle
-                                                                .txtInterMedium16
-                                                                .color,
-                                                            height:
-                                                            getVerticalSize(
-                                                              1.12,
-                                                            ),
+                                                          style: GoogleFonts.poppins(
+                                                            fontSize: 20,
+                                                            fontWeight: FontWeight.w600,
                                                           ),
                                                         ),
                                                         SizedBox(height: 16),
@@ -337,8 +327,10 @@ class ProfilePage extends StatelessWidget {
                                                             SizedBox(width: 12),
                                                             Text(
                                                               'English',
-                                                              style: AppStyle
-                                                                  .txtInterMedium16,
+                                                              style: GoogleFonts.poppins(
+                                                                fontSize: 16,
+                                                                fontWeight: FontWeight.w400,
+                                                              ),
                                                             ),
                                                           ],
                                                         ),
@@ -440,13 +432,10 @@ class ProfilePage extends StatelessWidget {
                                                       overflow:
                                                       TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
-                                                      style: AppStyle
-                                                          .txtInterMedium16
-                                                          .copyWith(
-                                                        height:
-                                                        getVerticalSize(
-                                                          1.24,
-                                                        ),
+                                                      style: GoogleFonts.poppins(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w500,
+                                                        color: const Color(0xFF0F172A),
                                                       ),
                                                     ),
                                                   ),
@@ -472,9 +461,10 @@ class ProfilePage extends StatelessWidget {
                                           "About App".tr,
                                           overflow: TextOverflow.ellipsis,
                                           textAlign: TextAlign.left,
-                                          style: AppStyle.txtInterBold14Gray800
-                                              .copyWith(
-                                            height: getVerticalSize(1.19),
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w900,
+                                            color: const Color(0xFF0F172A),
                                           ),
                                         ),
                                       ),
@@ -552,13 +542,10 @@ class ProfilePage extends StatelessWidget {
                                                       overflow:
                                                       TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
-                                                      style: AppStyle
-                                                          .txtInterMedium16
-                                                          .copyWith(
-                                                        height:
-                                                        getVerticalSize(
-                                                          1.24,
-                                                        ),
+                                                      style: GoogleFonts.poppins(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w500,
+                                                        color: const Color(0xFF0F172A),
                                                       ),
                                                     ),
                                                   ),
@@ -652,13 +639,10 @@ class ProfilePage extends StatelessWidget {
                                                       overflow:
                                                       TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
-                                                      style: AppStyle
-                                                          .txtInterMedium16
-                                                          .copyWith(
-                                                        height:
-                                                        getVerticalSize(
-                                                          1.24,
-                                                        ),
+                                                      style: GoogleFonts.poppins(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w500,
+                                                        color: const Color(0xFF0F172A),
                                                       ),
                                                     ),
                                                   ),
@@ -796,13 +780,10 @@ class ProfilePage extends StatelessWidget {
                                                       overflow:
                                                       TextOverflow.ellipsis,
                                                       textAlign: TextAlign.left,
-                                                      style: AppStyle
-                                                          .txtInterMedium16
-                                                          .copyWith(
-                                                        height:
-                                                        getVerticalSize(
-                                                          1.24,
-                                                        ),
+                                                      style: GoogleFonts.poppins(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w500,
+                                                        color: const Color(0xFF0F172A),
                                                       ),
                                                     ),
                                                   ),
@@ -828,7 +809,7 @@ class ProfilePage extends StatelessWidget {
                       child: Padding(
                         padding: EdgeInsets.only(
                           top: getVerticalSize(90),
-                        ), // 👈 push down
+                        ),
                         child: Column(
                           children: [
                             FutureBuilder<Map<String, dynamic>?>(
@@ -838,6 +819,10 @@ class ProfilePage extends StatelessWidget {
                                     snapshot.data?['name']?.toString() ?? '';
                                 final email =
                                     snapshot.data?['email']?.toString() ?? '';
+                                final councilName =
+                                    snapshot.data?['council_name']?.toString() ?? '';
+                                final role =
+                                    snapshot.data?['role']?.toString() ?? '';
 
                                 String initials = '';
                                 if (name.isNotEmpty) {
@@ -873,12 +858,10 @@ class ProfilePage extends StatelessWidget {
                                         child: initials.isNotEmpty
                                             ? Text(
                                           initials,
-                                          style: AppStyle
-                                              .txtInterSemiBold20Gray800
-                                              .copyWith(
-                                            color:
-                                            ColorConstant.blue700,
-                                            fontSize: getFontSize(28),
+                                          style: GoogleFonts.poppins(
+                                            color: ColorConstant.blue700,
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         )
                                             : CustomImageView(
@@ -894,20 +877,37 @@ class ProfilePage extends StatelessWidget {
                                       child: Text(
                                         name.isNotEmpty ? name : "Username".tr,
                                         overflow: TextOverflow.ellipsis,
-                                        style:
-                                        AppStyle.txtInterSemiBold20Gray800,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF0F172A),
+                                        ),
                                       ),
                                     ),
 
                                     Padding(
-                                      padding: getPadding(top: 8),
+                                      padding: getPadding(top: 4),
                                       child: Text(
-                                        email.isNotEmpty
-                                            ? email
-                                            : "Useremailaddress".tr,
+                                        councilName.isNotEmpty ? councilName : "Council".tr,
                                         overflow: TextOverflow.ellipsis,
-                                        style:
-                                        AppStyle.txtInterRegular14BlackA700,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ),
+
+                                    Padding(
+                                      padding: getPadding(top: 4),
+                                      child: Text(
+                                        role.isNotEmpty ? role : "Role".tr,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: const Color(0xFF1E7F4F),
+                                        ),
                                       ),
                                     ),
                                   ],

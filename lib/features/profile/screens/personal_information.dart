@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:local_govt_mw/common/basewidget/custom_icon_button.dart';
 import 'package:local_govt_mw/common/basewidget/custom_image_view.dart';
 import 'package:local_govt_mw/theme/app_decoration.dart';
@@ -9,6 +10,7 @@ import 'package:local_govt_mw/theme/custom_theme_colour.dart';
 import 'package:local_govt_mw/utill/images.dart';
 import 'package:local_govt_mw/utill/size_utils.dart';
 import 'package:local_govt_mw/data/local/user_dao.dart';
+import 'package:local_govt_mw/widgets/custom_app_bar.dart';
 
 class PersonalInformation extends StatefulWidget {
   const PersonalInformation({Key? key}) : super(key: key);
@@ -20,7 +22,6 @@ class PersonalInformation extends StatefulWidget {
 class _PersonalInformationState extends State<PersonalInformation> {
   late final Future<Map<String, dynamic>?> userFuture;
   final TextEditingController deleteConfirmController = TextEditingController();
-
 
   @override
   void initState() {
@@ -37,43 +38,15 @@ class _PersonalInformationState extends State<PersonalInformation> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF153871),
+        appBar: CustomAppBar(
+          title: "Account Info",
+          showBackButton: true,
+        ),
         body: SafeArea(
           child: SizedBox(
             width: size.width,
             child: Stack(
               children: [
-                CustomImageView(
-                  imagePath: ImageConstant.imgGroup14,
-                  height: getVerticalSize(251),
-                  width: getHorizontalSize(width),
-                  fit: BoxFit.fill,
-                ),
-
-                /// HEADER
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Row(
-                    children: [
-                      CustomIconButton(
-                        height: 50,
-                        width: 50,
-                        variant: IconButtonVariant.FillWhiteA70014,
-                        onTap: () => Get.back(),
-                        child: CustomImageView(
-                          svgPath: ImageConstant.imgArrowleftWhiteA70050x50,
-                        ),
-                      ),
-                      SizedBox(width: getHorizontalSize(68)),
-                      Text(
-                        "Account Info",
-                        style: AppStyle.txtInterSemiBold20.copyWith(
-                          height: getVerticalSize(1.12),
-                        ),
-                      ),
-                    ],
-                  ).paddingSymmetric(horizontal: 24),
-                ),
-
                 /// CONTENT
                 Stack(
                   children: [
@@ -93,20 +66,11 @@ class _PersonalInformationState extends State<PersonalInformation> {
                                 final name =
                                     (user['name'] ?? user['full_name'])
                                         ?.toString() ??
-                                    '';
+                                        '';
                                 final email = user['email']?.toString() ?? '';
-                                final clientId =
-                                    (user['client_id'] ??
-                                            user['clientID'] ??
-                                            user['clientId'])
-                                        ?.toString() ??
-                                    '';
-                                final nat =
-                                    (user['Nat_number'] ??
-                                            user['nat_number'] ??
-                                            user['natNumber'])
-                                        ?.toString() ??
-                                    '';
+                                final councilName =
+                                    user['council_name']?.toString() ?? '';
+                                final role = user['role']?.toString() ?? '';
 
                                 return ListView(
                                   physics: const BouncingScrollPhysics(),
@@ -132,54 +96,17 @@ class _PersonalInformationState extends State<PersonalInformation> {
                                     SizedBox(height: getVerticalSize(20)),
                                     getMyprofileDetailFormate(
                                       ImageConstant.imgProfileIcon,
-                                      "Client Code",
-                                      clientId.isNotEmpty ? clientId : '-',
+                                      "Council",
+                                      councilName.isNotEmpty ? councilName : "Council",
                                     ),
                                     SizedBox(height: getVerticalSize(20)),
                                     const Divider(),
                                     SizedBox(height: getVerticalSize(20)),
                                     getMyprofileDetailFormate(
                                       ImageConstant.imgProfileIcon,
-                                      "National ID",
-                                      nat.isNotEmpty ? nat : '-',
+                                      "Role",
+                                      role.isNotEmpty ? role : "Role",
                                     ),
-                                    SizedBox(height: getVerticalSize(24)),
-
-                                    /// ACCOUNT DELETION ACTION (ADDED)
-                                    const Divider(height: 1),
-
-                                    Padding(
-                                      padding: EdgeInsets.fromLTRB(
-                                        24,
-                                        44,
-                                        24,
-                                        24,
-                                      ),
-                                      child: GestureDetector(
-                                        onTap: _showDeleteAccountBottomSheet,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: const [
-                                            Icon(
-                                              Icons.delete_outline,
-                                              color: Colors.red,
-                                              size: 20,
-                                            ),
-                                            SizedBox(width: 14),
-                                            Text(
-                                              "Request Account Deletion",
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-
                                     SizedBox(height: getVerticalSize(24)),
                                   ],
                                 );
@@ -219,23 +146,23 @@ class _PersonalInformationState extends State<PersonalInformation> {
                               initials = parts.length == 1
                                   ? parts.first[0].toUpperCase()
                                   : (parts.first[0] + parts.last[0])
-                                        .toUpperCase();
+                                  .toUpperCase();
                             }
 
                             return CircleAvatar(
                               backgroundColor: ColorConstant.whiteA700,
                               child: initials.isNotEmpty
                                   ? Text(
-                                      initials,
-                                      style: AppStyle.txtInterSemiBold20
-                                          .copyWith(
-                                            color: ColorConstant.blue700,
-                                            fontSize: getFontSize(28),
-                                          ),
-                                    )
+                                initials,
+                                style: GoogleFonts.poppins(
+                                  color: ColorConstant.blue700,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
                                   : CustomImageView(
-                                      imagePath: ImageConstant.imgAvtar,
-                                    ),
+                                imagePath: ImageConstant.imgAvtar,
+                              ),
                             );
                           },
                         ),
@@ -251,135 +178,11 @@ class _PersonalInformationState extends State<PersonalInformation> {
     );
   }
 
-  /// ---------------------------------
-  void _showDeleteAccountBottomSheet() {
-  final TextEditingController confirmController = TextEditingController();
-
-  showModalBottomSheet(
-    context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (_) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.warning_amber_rounded,
-              size: 44,
-              color: Colors.red,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Request Account Deletion",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "This will submit a request for account deletion. "
-              "The process is not immediate and may require identity verification. "
-              "You will be contacted via email once reviewed.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black54, height: 1.4),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Cancel"),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ),
-                    onPressed: () {
-                      // Close bottom sheet first
-                      Navigator.pop(context);
-
-                      // Show DELETE confirmation dialog
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) => AlertDialog(
-                          title: const Text("Confirm Deletion"),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                "Type DELETE below to confirm your account deletion request.",
-                                style: TextStyle(fontSize: 14),
-                              ),
-                              const SizedBox(height: 16),
-                              TextField(
-                                controller: confirmController,
-                                decoration: const InputDecoration(
-                                  hintText: "Type DELETE",
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text("Cancel"),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                              ),
-                              onPressed: () {
-                                if (confirmController.text.trim() != "DELETE") {
-                                  Get.snackbar(
-                                    "Confirmation required",
-                                    "Please type DELETE exactly to proceed.",
-                                    snackPosition: SnackPosition.BOTTOM,
-                                  );
-                                  return;
-                                }
-
-                                Navigator.pop(context);
-
-                                Get.snackbar(
-                                  "Request submitted",
-                                  "Your account deletion request has been sent. Our team will contact you via email.",
-                                  snackPosition: SnackPosition.BOTTOM,
-                                );
-
-                                // TODO: Call deletion API here
-                              },
-                              child: const Text("Confirm"),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    child: const Text("Submit"),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-
-
   Widget getMyprofileDetailFormate(
-    String iconImage,
-    String cetegoryName,
-    String userDetail,
-  ) {
+      String iconImage,
+      String cetegoryName,
+      String userDetail,
+      ) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: getHorizontalSize(24)),
       child: Row(
@@ -393,7 +196,7 @@ class _PersonalInformationState extends State<PersonalInformation> {
               children: [
                 Text(
                   cetegoryName,
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     color: ColorConstant.gray600,
                     fontSize: getFontSize(16),
                     fontWeight: FontWeight.w500,
@@ -402,7 +205,7 @@ class _PersonalInformationState extends State<PersonalInformation> {
                 SizedBox(height: getVerticalSize(7)),
                 Text(
                   userDetail,
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     color: ColorConstant.black900,
                     fontSize: getFontSize(16),
                     fontWeight: FontWeight.w500,
