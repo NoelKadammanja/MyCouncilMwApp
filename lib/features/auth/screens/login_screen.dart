@@ -10,6 +10,7 @@ import 'package:local_govt_mw/utill/validation_utils.dart';
 /// - Image header goes to the very top (behind system status bar)
 /// - White card below
 /// - Hides top content when keyboard is active for better input visibility
+/// - Auto-scrolls to input fields when keyboard opens
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -22,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
 
   // ✅ Brand colors
   static const Color kPrimaryGreen = Color(0xFF1E7F4F);
@@ -54,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
       statusBarIconBrightness: Brightness.light, // Android
     ));
 
-    // Add focus listeners to detect keyboard visibility
+    // Add focus listeners to detect keyboard visibility and auto-scroll
     _emailFocusNode.addListener(_onFocusChange);
     _passwordFocusNode.addListener(_onFocusChange);
   }
@@ -66,12 +68,52 @@ class _LoginScreenState extends State<LoginScreen> {
         _isKeyboardVisible = hasFocus;
       });
     }
+
+    // Auto-scroll when keyboard opens
+    if (hasFocus) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (_scrollController.hasClients && mounted) {
+          if (_emailFocusNode.hasFocus) {
+            // Small scroll for email field (optional)
+            _scrollController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          } else if (_passwordFocusNode.hasFocus) {
+            // Calculate exact scroll for password field
+            final passwordFieldContext = _passwordFocusNode.context;
+            if (passwordFieldContext != null) {
+              final renderBox = passwordFieldContext.findRenderObject() as RenderBox?;
+              if (renderBox != null) {
+                final offset = renderBox.localToGlobal(Offset.zero);
+                final media = MediaQuery.of(context);
+                final keyboardHeight = media.viewInsets.bottom;
+                final screenHeight = media.size.height;
+                final fieldBottom = offset.dy + renderBox.size.height;
+
+                final scrollAmount = (fieldBottom - (screenHeight - keyboardHeight)) + 20;
+
+                if (scrollAmount > 0) {
+                  _scrollController.animateTo(
+                    _scrollController.offset + scrollAmount,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                }
+              }
+            }
+          }
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
+    _scrollController.dispose();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -154,6 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
         extendBodyBehindAppBar: true,
 
         body: SingleChildScrollView(
+          controller: _scrollController,
           padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
           child: Column(
             children: [
