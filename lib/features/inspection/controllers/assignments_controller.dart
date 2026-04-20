@@ -17,7 +17,6 @@ class AssignmentsController extends GetxController {
   final List<String> filters = [
     'All',
     'Pending',
-    'In Progress',
     'Completed',
     'Rejected',
   ];
@@ -49,6 +48,8 @@ class AssignmentsController extends GetxController {
         isOffline.value = false;
 
         debugPrint('AssignmentsController: fetched ${assignments.length} assignments from API');
+        debugPrint('Pending: ${assignments.where((a) => a.isPendingInspection).length}');
+        debugPrint('Completed: ${assignments.where((a) => a.isInspectionCompleted).length}');
       } else {
         assignments.clear();
         filteredAssignments.clear();
@@ -102,6 +103,8 @@ class AssignmentsController extends GetxController {
           .where((a) => a.formattedStatus == selectedFilter.value)
           .toList();
     }
+
+    debugPrint('Filter: ${selectedFilter.value}, Showing: ${filteredAssignments.length} assignments');
   }
 
   void setFilter(String filter) {
@@ -109,4 +112,13 @@ class AssignmentsController extends GetxController {
   }
 
   void refreshAssignments() => fetchAssignments();
+
+  /// Get statistics for homepage display
+  Map<String, int> getStats() {
+    return {
+      'total': assignments.length,
+      'pending': assignments.where((a) => a.isPendingInspection).length,
+      'completed': assignments.where((a) => a.isInspectionCompleted).length,
+    };
+  }
 }

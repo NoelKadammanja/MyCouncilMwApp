@@ -17,6 +17,7 @@ class InspectionAssignment {
   final String submittedByUserId;
   final String type; // NEW or RENEWAL
   final String? licenseTypeId;
+  final WorkflowStatus? workflowStatus;
 
   InspectionAssignment({
     required this.id,
@@ -37,6 +38,7 @@ class InspectionAssignment {
     required this.submittedByUserId,
     required this.type,
     this.licenseTypeId,
+    this.workflowStatus,
   });
 
   factory InspectionAssignment.fromJson(Map<String, dynamic> json) {
@@ -59,21 +61,59 @@ class InspectionAssignment {
       submittedByUserId: json['submittedByUserId'] ?? '',
       type: json['type'] ?? 'NEW',
       licenseTypeId: json['licenseTypeId']?.toString(),
+      workflowStatus: json['workflowStatus'] != null
+          ? WorkflowStatus.fromJson(json['workflowStatus'])
+          : null,
     );
   }
 
+  /// Returns true if the inspection checklist has NOT been submitted yet
+  /// (i.e., still pending site inspection)
+  bool get isPendingInspection {
+    if (workflowStatus == null) return false;
+    return workflowStatus!.currentStageName == 'Pending Site Inspection ';
+  }
+
+  /// Returns true if the inspection checklist HAS been submitted
+  /// (i.e., waiting for report submission or beyond)
+  bool get isInspectionCompleted {
+    if (workflowStatus == null) return false;
+    // Any stage other than "Pending Site Inspection " means inspection is done
+    return workflowStatus!.currentStageName != 'Pending Site Inspection ';
+  }
+
+  /// Returns user-friendly formatted status for display
   String get formattedStatus {
-    switch (status) {
-      case 'PENDING_INSPECTION':
-        return 'Pending';
-      case 'IN_PROGRESS':
-        return 'In Progress';
-      case 'APPROVED':
-        return 'Completed';
-      case 'REJECTED':
-        return 'Rejected';
-      default:
-        return status.toLowerCase().replaceFirst(status[0], status[0].toUpperCase());
+    if (workflowStatus == null) {
+      // Fallback to old status mapping if workflowStatus is missing
+      switch (status) {
+        case 'PENDING_INSPECTION':
+          return 'Pending';
+        case 'IN_PROGRESS':
+          return 'In Progress';
+        case 'APPROVED':
+          return 'Completed';
+        case 'REJECTED':
+          return 'Rejected';
+        default:
+          return status.toLowerCase().replaceFirst(status[0], status[0].toUpperCase());
+      }
+    }
+
+    // Use workflowStatus for accurate status determination
+    final stageName = workflowStatus!.currentStageName;
+
+    if (stageName == 'Pending Site Inspection ') {
+      return 'Pending';
+    } else if (stageName == 'Pending Inspection Report Submission') {
+      return 'Completed';
+    } else if (stageName.toLowerCase().contains('reject')) {
+      return 'Rejected';
+    } else if (stageName.toLowerCase().contains('approved') ||
+        stageName.toLowerCase().contains('issuance')) {
+      return 'Completed';
+    } else {
+      return 'Completed'; // Default for any post-inspection stage
     }
   }
 
@@ -84,6 +124,29 @@ class InspectionAssignment {
   String get placeType {
     return categoryName;
   }
+}
+
+/// Workflow status model to track the current stage of the application
+class WorkflowStatus {
+  final String currentStageCode;
+  final String currentStageName;
+
+  WorkflowStatus({
+    required this.currentStageCode,
+    required this.currentStageName,
+  });
+
+  factory WorkflowStatus.fromJson(Map<String, dynamic> json) {
+    return WorkflowStatus(
+      currentStageCode: json['currentStageCode'] ?? '',
+      currentStageName: json['currentStageName'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'currentStageCode': currentStageCode,
+    'currentStageName': currentStageName,
+  };
 }
 
 class ChecklistItem {

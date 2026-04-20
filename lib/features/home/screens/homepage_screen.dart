@@ -135,14 +135,22 @@ class _HomepageScreenState extends State<HomepageScreen> {
 
     final currentAssignments = _assignmentsController.assignments.toList();
 
+    // Calculate stats based on workflowStatus
+    int pending = 0;
+    int completed = 0;
+
+    for (var assignment in currentAssignments) {
+      if (assignment.isPendingInspection) {
+        pending++;
+      } else if (assignment.isInspectionCompleted) {
+        completed++;
+      }
+    }
+
     setState(() {
       totalAssignments = currentAssignments.length;
-      pendingAssignments = currentAssignments
-          .where((a) => a.formattedStatus == 'Pending')
-          .length;
-      completedAssignments = currentAssignments
-          .where((a) => a.formattedStatus == 'Completed')
-          .length;
+      pendingAssignments = pending;
+      completedAssignments = completed;
       recentAssignments = currentAssignments.take(5).toList();
     });
 
@@ -869,82 +877,110 @@ class _RecentInspectionRow extends StatelessWidget {
   static const Color kBorder = Color(0xFFE5E7EB);
 
   void _navigateToChecklist(BuildContext context) {
-    Get.to(() => ChecklistScreen(assignment: assignment));
+    // Only navigate if inspection is still pending
+    if (assignment.isPendingInspection) {
+      Get.to(() => ChecklistScreen(assignment: assignment));
+    } else {
+      // Show message that inspection is already completed
+      Get.snackbar(
+        'Inspection Already Completed',
+        'This inspection has already been submitted and cannot be modified.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(12),
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isCompleted = assignment.isInspectionCompleted;
+    final bool canNavigate = assignment.isPendingInspection;
+
     return InkWell(
-      onTap: () => _navigateToChecklist(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: kBorder.withOpacity(0.7))),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: assignment.formattedStatus == 'Pending'
-                    ? Colors.orange.withOpacity(0.1)
-                    : assignment.formattedStatus == 'Completed'
-                    ? kPrimaryGreen.withOpacity(0.1)
-                    : kMuted.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                assignment.formattedStatus,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
+      onTap: canNavigate ? () => _navigateToChecklist(context) : null,
+      child: Opacity(
+        opacity: isCompleted ? 0.6 : 1.0,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: kBorder.withOpacity(0.7))),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
                   color: assignment.formattedStatus == 'Pending'
-                      ? Colors.orange
+                      ? Colors.orange.withOpacity(0.1)
                       : assignment.formattedStatus == 'Completed'
-                      ? kPrimaryGreen
-                      : kMuted,
+                      ? kPrimaryGreen.withOpacity(0.1)
+                      : kMuted.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  assignment.formattedStatus,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: assignment.formattedStatus == 'Pending'
+                        ? Colors.orange
+                        : assignment.formattedStatus == 'Completed'
+                        ? kPrimaryGreen
+                        : kMuted,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                  color: kPrimaryGreen.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(10)
+              const SizedBox(width: 12),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: kPrimaryGreen.withOpacity(isCompleted ? 0.05 : 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isCompleted ? Icons.check_circle : Icons.business_center,
+                  size: 20,
+                  color: isCompleted ? kPrimaryGreen : kPrimaryGreen,
+                ),
               ),
-              child: Icon(Icons.business_center, size: 20, color: kPrimaryGreen),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    assignment.businessName,
-                    style: const TextStyle(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      assignment.businessName,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
-                        color: kText
+                        color: kText,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    assignment.referenceNumber,
-                    style: TextStyle(
+                    const SizedBox(height: 2),
+                    Text(
+                      assignment.referenceNumber,
+                      style: TextStyle(
                         fontSize: 11,
                         color: kMuted,
-                        fontWeight: FontWeight.w500
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right, size: 18, color: kMuted),
-          ],
+              Icon(
+                canNavigate ? Icons.chevron_right : Icons.lock_outline,
+                size: 18,
+                color: canNavigate ? kMuted : kMuted.withOpacity(0.4),
+              ),
+            ],
+          ),
         ),
       ),
     );

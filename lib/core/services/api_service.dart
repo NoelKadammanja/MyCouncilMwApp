@@ -13,7 +13,7 @@ class ApiService extends GetxService {
   static const String myAssignmentsEndpoint =
       '/api/licensing/applications/my-assignments';
   // submit inspection results from checklist
-  static const String submitInspectionEndpoint = '/api/v1/inspection/results/submit';
+  static const String submitInspectionEndpoint = '/api/v1/inspection/results/submit-result';
 
   final UserDao _userDao = UserDao();
 

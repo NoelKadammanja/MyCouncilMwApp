@@ -11,8 +11,6 @@ class AssignmentsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Use Get.put here but store in a local variable — safe in StatelessWidget
-    // as long as the controller isn't already registered (GetX handles dedup).
     final controller = Get.put(AssignmentsController());
 
     return Scaffold(
@@ -43,7 +41,6 @@ class AssignmentsScreen extends StatelessWidget {
         children: [
           // ✅ Filter chips
           Obx(() {
-            // Read .value explicitly so Obx tracks this observable
             final selectedFilter = controller.selectedFilter.value;
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -62,16 +59,13 @@ class AssignmentsScreen extends StatelessWidget {
                       selected: isSelected,
                       onSelected: (_) => controller.setFilter(filter),
                       backgroundColor: Colors.grey.shade50,
-                      selectedColor:
-                      const Color(0xFF1E7F4F).withOpacity(0.1),
+                      selectedColor: const Color(0xFF1E7F4F).withOpacity(0.1),
                       checkmarkColor: const Color(0xFF1E7F4F),
                       labelStyle: TextStyle(
                         color: isSelected
                             ? const Color(0xFF1E7F4F)
                             : const Color(0xFF64748B),
-                        fontWeight: isSelected
-                            ? FontWeight.w900
-                            : FontWeight.w600,
+                        fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
                       ),
                       side: BorderSide(
                         color: isSelected
@@ -88,7 +82,6 @@ class AssignmentsScreen extends StatelessWidget {
           // ✅ Assignments list
           Expanded(
             child: Obx(() {
-              // ✅ Read ALL reactive variables explicitly at the top of this Obx
               final isLoading = controller.isLoading.value;
               final assignments = controller.assignments;
               final filteredAssignments = controller.filteredAssignments;
@@ -140,8 +133,22 @@ class AssignmentsScreen extends StatelessWidget {
                   final assignment = filteredAssignments[index];
                   return _AssignmentCard(
                     assignment: assignment,
-                    onTap: () =>
-                        Get.to(() => ChecklistScreen(assignment: assignment)),
+                    onTap: () {
+                      // Only allow navigation if inspection is still pending
+                      if (assignment.isPendingInspection) {
+                        Get.to(() => ChecklistScreen(assignment: assignment));
+                      } else {
+                        Get.snackbar(
+                          'Inspection Already Completed',
+                          'This inspection has already been submitted and cannot be modified.',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.orange,
+                          colorText: Colors.white,
+                          margin: const EdgeInsets.all(12),
+                          duration: const Duration(seconds: 3),
+                        );
+                      }
+                    },
                   );
                 },
               );
@@ -217,14 +224,17 @@ class _AssignmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = assignment.formattedStatus;
-    final isCompleted = status == 'Completed' || status == 'Rejected';
+    final isCompleted = assignment.isInspectionCompleted;
+    final canStartInspection = assignment.isPendingInspection;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorder),
+        border: Border.all(
+          color: isCompleted ? kPrimaryGreen.withOpacity(0.3) : kBorder,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -236,7 +246,7 @@ class _AssignmentCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isCompleted ? null : onTap,
+          onTap: canStartInspection ? onTap : null,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -323,8 +333,7 @@ class _AssignmentCard extends StatelessWidget {
                 // Owner
                 Row(
                   children: [
-                    Icon(Icons.person_outline,
-                        size: 14, color: kMuted.withOpacity(0.7)),
+                    Icon(Icons.person_outline, size: 14, color: kMuted.withOpacity(0.7)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -343,8 +352,7 @@ class _AssignmentCard extends StatelessWidget {
                 // Category
                 Row(
                   children: [
-                    Icon(Icons.category,
-                        size: 14, color: kMuted.withOpacity(0.7)),
+                    Icon(Icons.category, size: 14, color: kMuted.withOpacity(0.7)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -363,8 +371,7 @@ class _AssignmentCard extends StatelessWidget {
                 // Type
                 Row(
                   children: [
-                    Icon(Icons.pending_actions,
-                        size: 14, color: kMuted.withOpacity(0.7)),
+                    Icon(Icons.pending_actions, size: 14, color: kMuted.withOpacity(0.7)),
                     const SizedBox(width: 6),
                     Text(
                       assignment.type,
@@ -377,13 +384,34 @@ class _AssignmentCard extends StatelessWidget {
                   ],
                 ),
 
+                // Workflow Stage
+                if (assignment.workflowStatus != null) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.timeline, size: 14, color: kMuted.withOpacity(0.7)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          assignment.workflowStatus!.currentStageName,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: kMuted.withOpacity(0.7),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+
                 // Date
                 if (assignment.createdAt != null) ...[
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today,
-                          size: 14, color: kMuted.withOpacity(0.7)),
+                      Icon(Icons.calendar_today, size: 14, color: kMuted.withOpacity(0.7)),
                       const SizedBox(width: 6),
                       Text(
                         'Submitted: ${DateFormat('MMM dd, yyyy').format(assignment.createdAt!)}',
@@ -396,32 +424,31 @@ class _AssignmentCard extends StatelessWidget {
                   ),
                 ],
 
-                // Start Inspection button (only for non-completed)
-                if (!isCompleted) ...[
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: onTap,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kPrimaryGreen,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
+                // Action button
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: canStartInspection ? onTap : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: canStartInspection ? kPrimaryGreen : kMuted.withOpacity(0.3),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        'Start Inspection',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 13,
-                        ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      canStartInspection ? 'Start Inspection' : 'Inspection Completed',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        color: canStartInspection ? Colors.white : kMuted,
                       ),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
