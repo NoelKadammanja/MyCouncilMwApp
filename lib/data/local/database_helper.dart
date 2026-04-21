@@ -11,7 +11,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String dbName = 'local_govt_mw.db';
-  static const int dbVersion = 5; // Updated to version 5
+  static const int dbVersion = 6; // Updated to version 6 for workflow_stage column
 
   // Table names
   static const String tableUsers = 'users';
@@ -110,7 +110,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Notifications table
+    // Notifications table with workflow_stage column for tracking pending inspections
     await db.execute('''
       CREATE TABLE $tableNotifications (
         id TEXT PRIMARY KEY,
@@ -120,6 +120,7 @@ class DatabaseHelper {
         business_name TEXT,
         reference_number TEXT,
         status TEXT,
+        workflow_stage TEXT,
         created_at INTEGER NOT NULL,
         is_read INTEGER DEFAULT 0
       )
@@ -173,6 +174,19 @@ class DatabaseHelper {
         debugPrint('DB: Created notifications table');
       } catch (e) {
         debugPrint('DB: Error creating notifications table: $e');
+      }
+    }
+    if (oldVersion < 6) {
+      try {
+        // Check if workflow_stage column exists in notifications table
+        final columns = await db.rawQuery('PRAGMA table_info($tableNotifications)');
+        final hasWorkflowStage = columns.any((col) => col['name'] == 'workflow_stage');
+        if (!hasWorkflowStage) {
+          await db.execute('ALTER TABLE $tableNotifications ADD COLUMN workflow_stage TEXT');
+          debugPrint('DB: Added workflow_stage column to notifications table');
+        }
+      } catch (e) {
+        debugPrint('DB: Error adding workflow_stage column: $e');
       }
     }
   }
@@ -479,6 +493,15 @@ class DatabaseHelper {
     final db = await database;
     final result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM $tableNotifications WHERE is_read = 0',
+    );
+    return (result.first['count'] as int?) ?? 0;
+  }
+
+  /// Get count of pending inspection notifications only
+  Future<int> getPendingInspectionCount() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM $tableNotifications WHERE is_read = 0 AND (workflow_stage = "Pending Site Inspection " OR workflow_stage LIKE "%Pending Site Inspection%")',
     );
     return (result.first['count'] as int?) ?? 0;
   }

@@ -1,78 +1,54 @@
-import 'package:flutter/material.dart'; // Add this import
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:local_govt_mw/features/inspection/models/inspection_model.dart';
-import 'package:local_govt_mw/data/local/notification_dao.dart';
+import 'package:local_govt_mw/controllers/notifications_controller.dart';
 
 class NotificationService extends GetxService {
-  final NotificationDao _notificationDao = NotificationDao();
-  final RxInt unreadCount = 0.obs;
-  final RxList<Map<String, dynamic>> notifications = <Map<String, dynamic>>[].obs;
+  NotificationsController get _controller => Get.find<NotificationsController>();
 
   @override
   void onInit() {
     super.onInit();
-    _loadNotifications();
+    debugPrint('NotificationService: Initialized');
+    // Ensure controller is available
+    if (!Get.isRegistered<NotificationsController>()) {
+      debugPrint('NotificationService: Controller not found, creating...');
+      Get.put(NotificationsController());
+    }
   }
 
-  Future<void> _loadNotifications() async {
-    final savedNotifications = await _notificationDao.getNotifications();
-    notifications.value = savedNotifications;
-    unreadCount.value = notifications.where((n) => n['is_read'] == 0).length;
+  // Delegate to controller
+  RxList<Map<String, dynamic>> get notifications => _controller.notifications;
+  int get pendingInspectionCount => _controller.pendingCount.value;
+
+  Future<void> checkForNewAssignments(List<InspectionAssignment> assignments) async {
+    debugPrint('NotificationService: Checking for new assignments...');
+    await _controller.checkAndCreateNotifications(assignments);
   }
 
-  Future<void> checkForNewAssignments(List<InspectionAssignment> currentAssignments) async {
-    final savedNotifications = await _notificationDao.getNotifications();
-    final existingAssignmentIds = savedNotifications
-        .map((n) => n['assignment_id']?.toString())
-        .where((id) => id != null)
-        .toSet();
-
-    final newAssignments = currentAssignments.where(
-            (a) => !existingAssignmentIds.contains(a.id)
-    ).toList();
-
-    for (var assignment in newAssignments) {
-      await _notificationDao.insertNotification({
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'assignment_id': assignment.id,
-        'title': 'New Inspection Assignment',
-        'body': 'You have been assigned to inspect ${assignment.businessName}',
-        'business_name': assignment.businessName,
-        'reference_number': assignment.referenceNumber,
-        'status': assignment.status,
-        'created_at': DateTime.now().millisecondsSinceEpoch,
-        'is_read': 0,
-      });
-    }
-
-    if (newAssignments.isNotEmpty) {
-      await _loadNotifications();
-
-      // Show snackbar for new assignments
-      Get.snackbar(
-        'New Assignments',
-        'You have ${newAssignments.length} new inspection assignment(s)',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: const Color(0xFF1E7F4F),
-        colorText: Colors.white,
-        duration: const Duration(seconds: 4),
-      );
-    }
+  Future<void> cleanupCompletedAssignments(List<InspectionAssignment> assignments) async {
+    debugPrint('NotificationService: Cleaning up completed assignments...');
+    await _controller.cleanupCompletedNotifications(assignments);
   }
 
   Future<void> markAsRead(String notificationId) async {
-    await _notificationDao.markAsRead(notificationId);
-    await _loadNotifications();
+    await _controller.markAsRead(notificationId);
   }
 
   Future<void> markAllAsRead() async {
-    await _notificationDao.markAllAsRead();
-    await _loadNotifications();
+    await _controller.markAllAsRead();
   }
 
   Future<void> clearNotifications() async {
-    await _notificationDao.clearAll();
-    notifications.clear();
-    unreadCount.value = 0;
+    await _controller.clearAll();
+  }
+
+  Future<void> refreshNotifications() async {
+    await _controller.loadNotifications();
+  }
+
+  // Debug method
+  Future<void> debugPrintState() async {
+    await _controller.debugPrintState();
   }
 }

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:google_fonts/google_fonts.dart'; // Add this import
+import 'package:google_fonts/google_fonts.dart';
 import 'package:local_govt_mw/core/services/offline_sync_service.dart';
 import 'package:local_govt_mw/data/local/database_helper.dart';
 import 'package:local_govt_mw/data/local/user_dao.dart';
 import 'package:local_govt_mw/features/auth/controllers/login_controller.dart';
-// import 'package:local_govt_mw/features/onboarding/controllers/onboarding_controller.dart';
 import 'package:local_govt_mw/services/notification_service.dart';
+import 'package:local_govt_mw/controllers/notifications_controller.dart'; // Add this import
 import 'features/splash/domain/models/splash_model.dart';
 import 'features/splash/controllers/splash_controller.dart';
 import 'helper/network_info.dart';
@@ -28,16 +28,21 @@ Future<void> main() async {
   await Get.putAsync<ApiService>(() async => apiService, permanent: true);
   debugPrint('MAIN: ApiService registered');
 
-  // ── 3. Register NotificationService permanently ───────────────────
+  // ── 3. Register NotificationsController FIRST (before NotificationService) ──
+  final notificationsController = NotificationsController();
+  Get.put<NotificationsController>(notificationsController, permanent: true);
+  debugPrint('MAIN: NotificationsController registered');
+
+  // ── 4. Register NotificationService permanently ───────────────────
   final notificationService = NotificationService();
   Get.put<NotificationService>(notificationService, permanent: true);
   debugPrint('MAIN: NotificationService registered');
 
-  // ── 4. Register OfflineSyncService permanently ───────────────────
+  // ── 5. Register OfflineSyncService permanently ───────────────────
   Get.put<OfflineSyncService>(OfflineSyncService(), permanent: true);
   debugPrint('MAIN: OfflineSyncService registered');
 
-  // ── 5. Determine initial route based on stored session ───────────
+  // ── 6. Determine initial route based on stored session ───────────
   final userDao = UserDao();
   final isLoggedIn = await userDao.isLoggedIn();
   final initialRoute = isLoggedIn
@@ -46,7 +51,7 @@ Future<void> main() async {
 
   debugPrint('MAIN: isLoggedIn=$isLoggedIn → initialRoute=$initialRoute');
 
-  // ── 6. Splash / network setup ─────────────────────────────────────
+  // ── 7. Splash / network setup ─────────────────────────────────────
   final splashModel = SplashModel(
     appName: 'Local Govt Mw',
     slogan: 'Building Better Together',
@@ -64,9 +69,6 @@ Future<void> main() async {
             networkInfo: networkInfo,
           )..checkNetworkStatus(),
         ),
-        // ChangeNotifierProvider(
-        //   create: (_) => OnboardingController(),
-        // ),
       ],
       child: MyApp(initialRoute: initialRoute),
     ),
@@ -92,7 +94,6 @@ class MyApp extends StatelessWidget {
         primaryColor: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        // Apply Poppins font globally
         textTheme: GoogleFonts.poppinsTextTheme(
           ThemeData.light().textTheme,
         ),

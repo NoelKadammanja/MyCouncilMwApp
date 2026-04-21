@@ -119,6 +119,18 @@ class _HomepageScreenState extends State<HomepageScreen> {
     }
   }
 
+  Future<void> _refreshNotifications() async {
+    try {
+      if (Get.isRegistered<NotificationService>()) {
+        final notificationService = Get.find<NotificationService>();
+        await notificationService.refreshNotifications();
+        debugPrint('HomepageScreen: Notifications refreshed');
+      }
+    } catch (e) {
+      debugPrint('Error refreshing notifications: $e');
+    }
+  }
+
   // Helper method to check if user is an inspector
   bool _isInspectorRole() {
     return role == 'LICENSING_INSPECTOR' || role == 'INSPECTOR';
@@ -158,7 +170,15 @@ class _HomepageScreenState extends State<HomepageScreen> {
     try {
       if (Get.isRegistered<NotificationService>()) {
         final notificationService = Get.find<NotificationService>();
+
+        // Check for new pending assignments
         await notificationService.checkForNewAssignments(currentAssignments);
+
+        // Clean up notifications for completed assignments
+        await notificationService.cleanupCompletedAssignments(currentAssignments);
+
+        // Force refresh notifications to update UI
+        await notificationService.refreshNotifications();
       }
     } catch (e) {
       debugPrint('Error checking notifications: $e');

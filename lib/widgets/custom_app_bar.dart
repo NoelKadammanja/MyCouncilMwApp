@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:local_govt_mw/routes/app_routes.dart';
-import 'package:local_govt_mw/services/notification_service.dart';
+import 'package:local_govt_mw/controllers/notifications_controller.dart';
 import 'package:badges/badges.dart' as badges;
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -25,7 +25,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final notificationService = Get.find<NotificationService>();
+    // Get the controller
+    final controller = Get.find<NotificationsController>();
 
     return AppBar(
       elevation: 0,
@@ -68,11 +69,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
-        // Notification Icon with Badge
         Obx(() {
-          final unreadCount = notificationService.unreadCount.value;
+          final count = controller.pendingCount.value;
+          debugPrint('CustomAppBar: Building badge with count=$count');
+
           return GestureDetector(
-            onTap: () => Get.toNamed(AppRoutes.notificationScreen),
+            onTap: () {
+              debugPrint('CustomAppBar: Notification icon tapped');
+              Get.toNamed(AppRoutes.notificationScreen);
+            },
             child: Container(
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.all(8),
@@ -82,9 +87,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 border: Border.all(color: Colors.white.withOpacity(0.22)),
               ),
               child: badges.Badge(
-                showBadge: unreadCount > 0,
+                showBadge: count > 0,
                 badgeContent: Text(
-                  unreadCount > 99 ? '99+' : unreadCount.toString(),
+                  count > 99 ? '99+' : count.toString(),
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 10,
