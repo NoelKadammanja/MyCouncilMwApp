@@ -32,21 +32,19 @@ class AssignmentsController extends GetxController {
   Future<void> fetchAssignments() async {
     try {
       isLoading.value = true;
-
-      // Try fetching from API first
-      final response = await _apiService.get(ApiService.myAssignmentsEndpoint);
+      // Pass size=1000 to get all assignments in one call
+      final response = await _apiService.get(
+        '${ApiService.myAssignmentsEndpoint}?page=0&size=1000',
+      );
       final dynamic raw = response['content'];
-
       if (raw is List) {
         final fetched = raw.cast<Map<String, dynamic>>();
         assignments.value = fetched
             .map((json) => InspectionAssignment.fromJson(json))
             .toList();
-
         // Cache for offline use
         await _syncService.cacheAssignments(fetched);
         isOffline.value = false;
-
         debugPrint('AssignmentsController: fetched ${assignments.length} assignments from API');
         debugPrint('Pending: ${assignments.where((a) => a.isPendingInspection).length}');
         debugPrint('Completed: ${assignments.where((a) => a.isInspectionCompleted).length}');
@@ -56,17 +54,13 @@ class AssignmentsController extends GetxController {
       }
     } catch (e) {
       debugPrint('AssignmentsController: API fetch failed, trying cache: $e');
-
-      // Fall back to local cache
       final cached = await _syncService.getCachedAssignments();
       if (cached.isNotEmpty) {
         assignments.value = cached
             .map((json) => InspectionAssignment.fromJson(json))
             .toList();
         isOffline.value = true;
-
         debugPrint('AssignmentsController: loaded ${assignments.length} assignments from cache');
-
         Get.snackbar(
           'Offline Mode',
           'Showing cached assignments. Connect to internet to refresh.',
@@ -77,7 +71,6 @@ class AssignmentsController extends GetxController {
           duration: const Duration(seconds: 4),
         );
       } else {
-        // No cache available
         final msg = e.toString();
         if (!msg.contains('Session expired')) {
           Get.snackbar(
