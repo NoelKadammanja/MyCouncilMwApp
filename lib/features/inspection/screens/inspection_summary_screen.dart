@@ -508,7 +508,7 @@ class InspectionSummaryScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Get.offAllNamed(AppRoutes.homepageScreen),
+                    onPressed: () => Get.offAllNamed(AppRoutes.appNavigationScreen),
                     style: OutlinedButton.styleFrom(
                         foregroundColor: kPrimaryGreen,
                         side: const BorderSide(color: kPrimaryGreen),
@@ -522,7 +522,7 @@ class InspectionSummaryScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Get.offAllNamed(AppRoutes.homepageScreen),
+                    onPressed: () => Get.offAllNamed(AppRoutes.appNavigationScreen),
                     style: ElevatedButton.styleFrom(
                         backgroundColor: kPrimaryGreen,
                         foregroundColor: Colors.white,

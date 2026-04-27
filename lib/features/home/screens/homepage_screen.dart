@@ -438,7 +438,7 @@ class _HomepageScreenState extends State<HomepageScreen> {
                   _RecentInspectionsCard(
                     recentAssignments: recentAssignments,
                     isLoading: isLoading,
-                    onViewAll: () => Get.to(() => const AssignmentsScreen()),
+                    onViewAll: () => Get.to(() => const AssignmentsScreen(showBackButton: true)),
                   ),
                 ],
               ),

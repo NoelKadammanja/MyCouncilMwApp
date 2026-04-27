@@ -7,7 +7,8 @@ import 'package:local_govt_mw/features/inspection/screens/checklist_screen.dart'
 import 'package:local_govt_mw/widgets/custom_app_bar.dart';
 
 class AssignmentsScreen extends StatelessWidget {
-  const AssignmentsScreen({super.key});
+  final bool showBackButton;
+  const AssignmentsScreen({super.key, this.showBackButton = false});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +18,7 @@ class AssignmentsScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: CustomAppBar(
         title: 'Assignments',
-        showBackButton: true,
+        showBackButton: showBackButton,
         actions: [
           Obx(() {
             final isLoading = controller.isLoading.value;
