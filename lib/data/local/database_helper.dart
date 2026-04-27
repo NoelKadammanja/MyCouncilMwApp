@@ -189,6 +189,19 @@ class DatabaseHelper {
         debugPrint('DB: Error adding workflow_stage column: $e');
       }
     }
+
+    if (oldVersion < 7) {
+      try {
+        final columns = await db.rawQuery('PRAGMA table_info($tablePendingSubmissions)');
+        final hasEvidenceJson = columns.any((col) => col['name'] == 'evidence_json');
+        if (!hasEvidenceJson) {
+          await db.execute('ALTER TABLE $tablePendingSubmissions ADD COLUMN evidence_json TEXT');
+          debugPrint('DB: Added evidence_json column to pending_submissions table');
+        }
+      } catch (e) {
+        debugPrint('DB: Error adding evidence_json column: $e');
+      }
+    }
   }
 
   // ============================================================
@@ -516,12 +529,17 @@ class DatabaseHelper {
     required Map<String, dynamic> resultsJson,
   }) async {
     final db = await database;
+    final evidenceJson = resultsJson['locationEvidence'] != null
+        ? jsonEncode(resultsJson['locationEvidence'])
+        : null;
+
     final id = await db.insert(
       tablePendingSubmissions,
       {
         'application_id': applicationId,
         'business_name': businessName,
         'results_json': jsonEncode(resultsJson),
+        'evidence_json': evidenceJson,
         'created_at': DateTime.now().millisecondsSinceEpoch,
         'retry_count': 0,
         'status': 'pending',

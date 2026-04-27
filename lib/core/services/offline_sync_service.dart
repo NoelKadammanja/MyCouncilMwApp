@@ -146,12 +146,16 @@ class OfflineSyncService extends GetxService {
 
     if (online) {
       try {
+        // Ensure locationEvidence is present
+        if (!resultsJson.containsKey('locationEvidence')) {
+          throw Exception('Location evidence is required for inspection submission');
+        }
+
         await _api.post(ApiService.submitInspectionEndpoint, resultsJson);
         debugPrint('OfflineSyncService: submitted online successfully');
         return SubmitResult.submittedOnline;
       } catch (e) {
         final msg = e.toString().toLowerCase();
-        // Only fall back to local storage for network-type errors
         final isNetworkError = msg.contains('socketexception') ||
             msg.contains('timeout') ||
             msg.contains('connection') ||

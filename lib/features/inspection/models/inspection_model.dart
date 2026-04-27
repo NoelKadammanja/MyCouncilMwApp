@@ -1,3 +1,6 @@
+import 'package:get/get.dart';
+import 'package:local_govt_mw/features/inspection/models/inspection_location_evidence.dart';
+
 class InspectionAssignment {
   final String id; // This is the application ID
   final String businessId;
@@ -190,15 +193,18 @@ class InspectionReport {
 class InspectionResultSubmit {
   final String applicationId;
   final List<InspectionResultItem> results;
+  final InspectionLocationEvidence locationEvidence;
 
   InspectionResultSubmit({
     required this.applicationId,
     required this.results,
+    required this.locationEvidence,
   });
 
   Map<String, dynamic> toJson() => {
     'applicationId': applicationId,
     'results': results.map((e) => e.toJson()).toList(),
+    'locationEvidence': locationEvidence.toJson(),
   };
 }
 

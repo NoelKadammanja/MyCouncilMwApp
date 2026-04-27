@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
@@ -156,5 +157,45 @@ class ApiService extends GetxService {
 
     throw Exception(
         'Request failed [${response.statusCode}]: ${response.body}');
+  }
+
+  /// Uploads a site photo and returns the photoFileId UUID from the server.
+  Future<String> uploadSitePhoto(File photoFile) async {
+    final uri = Uri.parse('$baseUrl/api/v1/inspection/results/upload-site-photo');
+    final token = await _userDao.getToken();
+
+    final request = http.MultipartRequest('POST', uri);
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    request.files.add(await http.MultipartFile.fromPath(
+      'photo',
+      photoFile.path,
+    ));
+
+    debugPrint('[ApiService] POST (multipart) $uri');
+
+    final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+    final response = await http.Response.fromStream(streamedResponse);
+
+    debugPrint('[ApiService] ${response.statusCode} <- POST upload-site-photo');
+    debugPrint('[ApiService] body: ${response.body}');
+
+    if (response.statusCode == 401) {
+      await _handleSessionExpired();
+      throw Exception('Session expired. Please login again.');
+    }
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final decoded = _decode(response);
+      final photoFileId = decoded['photoFileId']?.toString();
+      if (photoFileId == null || photoFileId.isEmpty) {
+        throw Exception('Server did not return a photoFileId');
+      }
+      return photoFileId;
+    }
+
+    throw Exception('Photo upload failed [${response.statusCode}]: ${response.body}');
   }
 }

@@ -35,6 +35,10 @@ dependencies:
   vibration: ^3.1.6
   http: ^1.2.0
   badges: ^3.1.2
+  camera: ^0.10.5+5
+  geolocator: ^10.1.0
+  path_provider: ^2.1.1
+
 
 dev_dependencies:
   flutter_test:
