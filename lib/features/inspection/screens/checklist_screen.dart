@@ -754,7 +754,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 _canSubmit
                     ? (_syncService.isOnline.value
                     ? 'Submit Inspection Report'
-                    : 'Save & Sync Later')
+                    : 'Save and Sync Later')
                     : 'Complete all items ($_completedCount/$_totalCount) to submit',
                 style: const TextStyle(
                     fontWeight: FontWeight.w900,
