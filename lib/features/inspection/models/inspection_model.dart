@@ -71,24 +71,21 @@ class InspectionAssignment {
   }
 
   /// Returns true if the inspection checklist has NOT been submitted yet
-  /// (i.e., still pending site inspection)
   bool get isPendingInspection {
     if (workflowStatus == null) return false;
-    return workflowStatus!.currentStageName == 'Pending Site Inspection ';
+    return workflowStatus!.currentStageCode == 'SUBMIT_INSPECTION';
   }
 
   /// Returns true if the inspection checklist HAS been submitted
-  /// (i.e., waiting for report submission or beyond)
   bool get isInspectionCompleted {
     if (workflowStatus == null) return false;
-    // Any stage other than "Pending Site Inspection " means inspection is done
-    return workflowStatus!.currentStageName != 'Pending Site Inspection ';
+    return workflowStatus!.currentStageCode != 'SUBMIT_INSPECTION';
   }
 
   /// Returns user-friendly formatted status for display
+  /// Returns user-friendly formatted status for display
   String get formattedStatus {
     if (workflowStatus == null) {
-      // Fallback to old status mapping if workflowStatus is missing
       switch (status) {
         case 'PENDING_INSPECTION':
           return 'Pending';
@@ -103,20 +100,14 @@ class InspectionAssignment {
       }
     }
 
-    // Use workflowStatus for accurate status determination
-    final stageName = workflowStatus!.currentStageName;
+    final stageCode = workflowStatus!.currentStageCode;
 
-    if (stageName == 'Pending Site Inspection ') {
+    if (stageCode == 'SUBMIT_INSPECTION') {
       return 'Pending';
-    } else if (stageName == 'Pending Inspection Report Submission') {
-      return 'Completed';
-    } else if (stageName.toLowerCase().contains('reject')) {
+    } else if (stageCode.toLowerCase().contains('reject')) {
       return 'Rejected';
-    } else if (stageName.toLowerCase().contains('approved') ||
-        stageName.toLowerCase().contains('issuance')) {
-      return 'Completed';
     } else {
-      return 'Completed'; // Default for any post-inspection stage
+      return 'Completed';
     }
   }
 
