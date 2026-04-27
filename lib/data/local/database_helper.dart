@@ -11,7 +11,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String dbName = 'local_govt_mw.db';
-  static const int dbVersion = 6; // Updated to version 6 for workflow_stage column
+  static const int dbVersion = 7; // Updated to version 7 for workflow_stage column and evidence submission
 
   // Table names
   static const String tableUsers = 'users';
@@ -189,7 +189,6 @@ class DatabaseHelper {
         debugPrint('DB: Error adding workflow_stage column: $e');
       }
     }
-
     if (oldVersion < 7) {
       try {
         final columns = await db.rawQuery('PRAGMA table_info($tablePendingSubmissions)');
