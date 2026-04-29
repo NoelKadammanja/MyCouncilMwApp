@@ -337,13 +337,15 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   Future<void> _submitInspection() async {
     if (!_canSubmit) {
-      _showSafeSnackbar('Cannot Submit',
-          'Please answer all checklist items before submitting.',
-          backgroundColor: Colors.orange);
+      _showSafeSnackbar(
+        'Cannot Submit',
+        'Please answer all checklist items before submitting.',
+        backgroundColor: Colors.orange,
+      );
       return;
     }
 
-    // Step 1: Capture location evidence
+    // Step 1: Capture location evidence (GPS and/or photo)
     final evidence = await _captureLocationEvidence();
     if (evidence == null) {
       _showSafeSnackbar(
@@ -359,13 +361,19 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     try {
       InspectionLocationEvidence finalEvidence = evidence;
 
-      // Step 2: If photo needs uploading and we're online, upload it first
+      // Step 2: If a photo was captured, it MUST be uploaded before submission.
+      // This is not optional — we do not silently skip it.
       if (evidence.photoFile != null && evidence.photoFileId == null) {
         final online = await _syncService.checkConnectivity();
+
         if (online) {
+          // Show uploading state
+          debugPrint('Uploading site photo before submission...');
           try {
             final photoFileId =
             await _apiService.uploadSitePhoto(evidence.photoFile!);
+
+            // Rebuild evidence with the returned photoFileId
             finalEvidence = InspectionLocationEvidence(
               latitude: evidence.latitude,
               longitude: evidence.longitude,
@@ -373,15 +381,69 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               photoFileId: photoFileId,
               capturedAt: evidence.capturedAt,
             );
-            debugPrint('Photo uploaded, photoFileId=$photoFileId');
-          } catch (e) {
-            debugPrint('Photo upload failed, will retry on sync: $e');
-            // Continue with offline save — photo path stored locally
+
+            debugPrint('Photo uploaded successfully | photoFileId=$photoFileId');
+          } catch (uploadError) {
+            // Photo upload failed — do NOT silently continue.
+            // If we have GPS as backup, warn but allow submission with GPS only.
+            // If photo is the only evidence, block submission.
+            debugPrint('Photo upload failed: $uploadError');
+
+            if (evidence.hasGps) {
+              // GPS is present as fallback — warn inspector and proceed GPS-only
+              _showSafeSnackbar(
+                'Photo Upload Failed',
+                'GPS location will be used as evidence. Photo could not be uploaded.',
+                backgroundColor: Colors.orange,
+                duration: 4,
+              );
+              // Drop the photo from evidence since it couldn't be uploaded
+              finalEvidence = InspectionLocationEvidence(
+                latitude: evidence.latitude,
+                longitude: evidence.longitude,
+                photoFile: null,
+                photoFileId: null,
+                capturedAt: evidence.capturedAt,
+              );
+            } else {
+              // Photo is the ONLY evidence and it failed to upload — block submission
+              _showSafeSnackbar(
+                'Submission Blocked',
+                'Photo upload failed and no GPS is available. '
+                    'Please check your connection and try again.',
+                backgroundColor: Colors.red,
+                duration: 5,
+              );
+              return; // Do not submit
+            }
           }
+        } else {
+          // Device is offline — save everything locally including photo path
+          // The photo will be re-uploaded when connectivity returns
+          debugPrint(
+              'Offline: saving photo path locally for later upload. path=${evidence.photoFile!.path}');
+
+          // For offline save, we keep photoFile path in the JSON
+          // so the sync service can re-upload it later
+          finalEvidence = evidence; // keep as-is with photoFile but no photoFileId
         }
       }
 
-      // Step 3: Build payload
+      // Step 3: Validate final evidence has at least one proof type
+      if (!finalEvidence.isValid) {
+        _showSafeSnackbar(
+          'Evidence Invalid',
+          'No valid location evidence could be attached. Please try again.',
+          backgroundColor: Colors.red,
+        );
+        return;
+      }
+
+      debugPrint('Final evidence: hasGps=${finalEvidence.hasGps}, '
+          'hasPhotoFileId=${finalEvidence.photoFileId != null}, '
+          'hasPhotoFile=${finalEvidence.photoFile != null}');
+
+      // Step 4: Build payload and submit
       final results = _checklistItems.map((item) {
         return InspectionResultItem(
           checklistItemId: item.id,
@@ -399,7 +461,23 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       final requestBody = submitData.toJson();
       debugPrint('Submit payload: ${jsonEncode(requestBody)}');
 
-      // Step 4: Submit (online or offline fallback)
+      // Verify the payload has evidence before sending
+      final evidencePayload =
+      requestBody['locationEvidence'] as Map<String, dynamic>?;
+      debugPrint('Evidence in payload: $evidencePayload');
+
+      if (evidencePayload == null ||
+          (evidencePayload['latitude'] == null &&
+              evidencePayload['photoFileId'] == null)) {
+        _showSafeSnackbar(
+          'Evidence Missing from Payload',
+          'Location evidence was not included in the submission. Please try again.',
+          backgroundColor: Colors.red,
+        );
+        return;
+      }
+
+      // Step 5: Submit (online or offline fallback)
       final submitResult = await _syncService.submitInspection(
         applicationId: widget.assignment.id,
         businessName: widget.assignment.businessName,
@@ -429,8 +507,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       }
     } catch (e) {
       debugPrint('Submission error: $e');
-      _showSafeSnackbar('Submission Failed', _getSubmissionErrorMessage(e),
-          backgroundColor: Colors.red, duration: 5);
+      _showSafeSnackbar(
+        'Submission Failed',
+        _getSubmissionErrorMessage(e),
+        backgroundColor: Colors.red,
+        duration: 5,
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

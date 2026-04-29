@@ -23,7 +23,7 @@ class NotificationsController extends GetxController {
       updatePendingCount();
       debugPrint('NotificationsController: Loaded ${savedNotifications.length} notifications');
       for (var n in savedNotifications) {
-        debugPrint('  - ${n['business_name']}: stage=${n['workflow_stage']}, read=${n['is_read']}');
+        debugPrint('  - ${n['business_name']}: stage_code=${n['workflow_stage']}, read=${n['is_read']}');
       }
     } catch (e) {
       debugPrint('Error loading notifications: $e');
@@ -31,11 +31,12 @@ class NotificationsController extends GetxController {
   }
 
   void updatePendingCount() {
+    // Count unread notifications where workflow_stage stores 'SUBMIT_INSPECTION'
     final count = notifications.where((n) {
-      final isRead = n['is_read'] == 0;
-      final workflowStage = n['workflow_stage']?.toString() ?? '';
-      final isPending = workflowStage.contains('Pending Site Inspection ');
-      return isRead && isPending;
+      final isUnread = n['is_read'] == 0;
+      final stageCode = n['workflow_stage']?.toString() ?? '';
+      final isPending = stageCode == 'SUBMIT_INSPECTION';
+      return isUnread && isPending;
     }).length;
     pendingCount.value = count;
     debugPrint('NotificationsController: Pending count updated to $count');
@@ -53,15 +54,14 @@ class NotificationsController extends GetxController {
     int newCount = 0;
 
     for (var assignment in assignments) {
-      // Check if assignment is pending inspection
+      // Use isPendingInspection which checks currentStageCode == 'SUBMIT_INSPECTION'
       final isPending = assignment.isPendingInspection;
-      // Check if we already have a notification for this assignment
       final hasNotification = existingAssignmentIds.contains(assignment.id);
 
       debugPrint('  Assignment: ${assignment.businessName}, isPending: $isPending, hasNotification: $hasNotification');
 
       if (isPending && !hasNotification) {
-        final notificationId = DateTime.now().millisecondsSinceEpoch.toString();
+        final notificationId = '${assignment.id}_${DateTime.now().millisecondsSinceEpoch}';
         await _notificationDao.insertNotification({
           'id': notificationId,
           'assignment_id': assignment.id,
@@ -70,7 +70,8 @@ class NotificationsController extends GetxController {
           'business_name': assignment.businessName,
           'reference_number': assignment.referenceNumber,
           'status': assignment.status,
-          'workflow_stage': assignment.workflowStatus?.currentStageName ?? 'Pending Site Inspection ',
+          // Store the stageCode (not stageName) so updatePendingCount can match reliably
+          'workflow_stage': assignment.workflowStatus?.currentStageCode ?? 'SUBMIT_INSPECTION',
           'created_at': DateTime.now().millisecondsSinceEpoch,
           'is_read': 0,
         });
@@ -79,10 +80,12 @@ class NotificationsController extends GetxController {
       }
     }
 
+    // Remove notifications for assignments that are no longer SUBMIT_INSPECTION
+    // (i.e. they have moved past inspection stage since last sync)
+    await _syncCompletedNotifications(assignments, existingNotifications);
+
     if (newCount > 0) {
       await loadNotifications();
-
-      // Show snackbar
       Get.snackbar(
         'New Inspections',
         'You have $newCount new inspection(s) pending',
@@ -93,34 +96,41 @@ class NotificationsController extends GetxController {
         icon: const Icon(Icons.assignment_turned_in, color: Colors.white),
       );
     } else {
+      await loadNotifications();
       debugPrint('NotificationsController: No new notifications to create');
     }
   }
 
-  Future<void> cleanupCompletedNotifications(List<InspectionAssignment> assignments) async {
+  /// Removes stored notifications for assignments that have moved past SUBMIT_INSPECTION
+  Future<void> _syncCompletedNotifications(
+      List<InspectionAssignment> assignments,
+      List<Map<String, dynamic>> existingNotifications,
+      ) async {
     final completedIds = assignments
         .where((a) => !a.isPendingInspection)
         .map((a) => a.id)
         .toSet();
 
-    debugPrint('NotificationsController: Cleaning up ${completedIds.length} completed assignments');
-
-    final allNotifications = await _notificationDao.getNotifications();
     int deletedCount = 0;
-
-    for (var notification in allNotifications) {
+    for (var notification in existingNotifications) {
       final assignmentId = notification['assignment_id']?.toString();
       if (assignmentId != null && completedIds.contains(assignmentId)) {
         await _notificationDao.deleteNotification(notification['id'].toString());
         deletedCount++;
-        debugPrint('  ✓ Deleted notification for completed assignment: $assignmentId');
+        debugPrint('  ✓ Removed notification for completed assignment: $assignmentId');
       }
     }
 
     if (deletedCount > 0) {
-      debugPrint('NotificationsController: Cleaned up $deletedCount notifications');
-      await loadNotifications();
+      debugPrint('NotificationsController: Removed $deletedCount completed notifications');
     }
+  }
+
+  Future<void> cleanupCompletedNotifications(List<InspectionAssignment> assignments) async {
+    debugPrint('NotificationsController: Cleaning up completed assignments');
+    final existingNotifications = await _notificationDao.getNotifications();
+    await _syncCompletedNotifications(assignments, existingNotifications);
+    await loadNotifications();
   }
 
   Future<void> markAsRead(String notificationId) async {
@@ -138,7 +148,6 @@ class NotificationsController extends GetxController {
     await loadNotifications();
   }
 
-  // For debugging
   Future<void> debugPrintState() async {
     debugPrint('=== NotificationsController Debug ===');
     debugPrint('Pending count: ${pendingCount.value}');

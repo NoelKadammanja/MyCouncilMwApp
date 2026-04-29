@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
 import 'package:local_govt_mw/data/local/user_dao.dart';
 import 'package:local_govt_mw/routes/app_routes.dart';
+import 'package:http_parser/http_parser.dart';
 
 class ApiService extends GetxService {
   static const String baseUrl = 'https://nico-customerportal.com';
@@ -161,26 +162,63 @@ class ApiService extends GetxService {
 
   /// Uploads a site photo and returns the photoFileId UUID from the server.
   Future<String> uploadSitePhoto(File photoFile) async {
-    final uri = Uri.parse('$baseUrl/api/v1/inspection/results/upload-site-photo');
+    final uri = Uri.parse(
+        '$baseUrl/api/v1/inspection/results/upload-site-photo');
     final token = await _userDao.getToken();
 
+    debugPrint('[uploadSitePhoto] Starting upload...');
+    debugPrint('[uploadSitePhoto] File path: ${photoFile.path}');
+
+    if (!await photoFile.exists()) {
+      throw Exception(
+          'Photo file does not exist at path: ${photoFile.path}');
+    }
+
+    final fileLength = await photoFile.length();
+    debugPrint('[uploadSitePhoto] File size: $fileLength bytes');
+    if (fileLength == 0) {
+      throw Exception('Photo file is empty (0 bytes)');
+    }
+
+    // Always force image/jpeg — Android camera temp files often
+    // lose their extension and get sniffed as application/octet-stream.
+    // Reading bytes directly with fromBytes() + explicit contentType
+    // bypasses all MIME sniffing issues entirely.
+    final contentType = MediaType('image', 'jpeg');
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final filename = 'inspection_photo_$timestamp.jpg';
+
+    debugPrint('[uploadSitePhoto] contentType: $contentType | filename: $filename');
+
     final request = http.MultipartRequest('POST', uri);
+
     if (token != null && token.isNotEmpty) {
       request.headers['Authorization'] = 'Bearer $token';
     }
+    request.headers['Accept'] = 'application/json';
 
-    request.files.add(await http.MultipartFile.fromPath(
-      'photo',
-      photoFile.path,
-    ));
+    // Use fromBytes — avoids MIME type sniffing from file path
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'photo',
+        await photoFile.readAsBytes(),
+        filename: filename,
+        contentType: contentType,
+      ),
+    );
 
-    debugPrint('[ApiService] POST (multipart) $uri');
+    debugPrint('[uploadSitePhoto] Sending request to $uri...');
 
-    final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+    final streamedResponse = await request.send().timeout(
+      const Duration(seconds: 60),
+      onTimeout: () =>
+      throw Exception('Photo upload timed out after 60 seconds'),
+    );
+
     final response = await http.Response.fromStream(streamedResponse);
 
-    debugPrint('[ApiService] ${response.statusCode} <- POST upload-site-photo');
-    debugPrint('[ApiService] body: ${response.body}');
+    debugPrint('[uploadSitePhoto] Status: ${response.statusCode}');
+    debugPrint('[uploadSitePhoto] Body:   ${response.body}');
 
     if (response.statusCode == 401) {
       await _handleSessionExpired();
@@ -191,11 +229,21 @@ class ApiService extends GetxService {
       final decoded = _decode(response);
       final photoFileId = decoded['photoFileId']?.toString();
       if (photoFileId == null || photoFileId.isEmpty) {
-        throw Exception('Server did not return a photoFileId');
+        throw Exception(
+            'Server did not return a photoFileId. Body: ${response.body}');
       }
+      debugPrint('[uploadSitePhoto] SUCCESS: photoFileId=$photoFileId');
       return photoFileId;
     }
 
-    throw Exception('Photo upload failed [${response.statusCode}]: ${response.body}');
+    throw Exception(
+        'Photo upload failed [${response.statusCode}]: ${response.body}');
+  }
+
+  /// Builds a safe filename with the correct extension for the server.
+  String _buildFileName(String filePath, MediaType contentType) {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final ext = contentType.subtype; // 'jpeg', 'png', 'webp'
+    return 'inspection_photo_$timestamp.$ext';
   }
 }

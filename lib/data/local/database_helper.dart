@@ -11,7 +11,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String dbName = 'local_govt_mw.db';
-  static const int dbVersion = 7; // Updated to version 7 for workflow_stage column and evidence submission
+  static const int dbVersion = 8; // v8: store currentStageCode in workflow_stage
 
   // Table names
   static const String tableUsers = 'users';
@@ -102,6 +102,7 @@ class DatabaseHelper {
         application_id TEXT NOT NULL,
         business_name TEXT NOT NULL,
         results_json TEXT NOT NULL,
+        evidence_json TEXT,
         created_at INTEGER NOT NULL,
         retry_count INTEGER DEFAULT 0,
         last_attempt INTEGER,
@@ -110,7 +111,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Notifications table with workflow_stage column for tracking pending inspections
+    // Notifications table — workflow_stage stores currentStageCode (e.g. SUBMIT_INSPECTION)
     await db.execute('''
       CREATE TABLE $tableNotifications (
         id TEXT PRIMARY KEY,
@@ -129,9 +130,9 @@ class DatabaseHelper {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      await db.execute('''
-        ALTER TABLE $tablePendingSubmissions ADD COLUMN error_message TEXT
-      ''');
+      await db.execute(
+        'ALTER TABLE $tablePendingSubmissions ADD COLUMN error_message TEXT',
+      );
     }
     if (oldVersion < 3) {
       await db.execute('''
@@ -147,9 +148,12 @@ class DatabaseHelper {
     if (oldVersion < 4) {
       try {
         final columns = await db.rawQuery('PRAGMA table_info($tableUsers)');
-        final hasCouncilCode = columns.any((col) => col['name'] == 'council_code');
+        final hasCouncilCode =
+        columns.any((col) => col['name'] == 'council_code');
         if (!hasCouncilCode) {
-          await db.execute('ALTER TABLE $tableUsers ADD COLUMN council_code TEXT');
+          await db.execute(
+            'ALTER TABLE $tableUsers ADD COLUMN council_code TEXT',
+          );
           debugPrint('DB: Added council_code column to users table');
         }
       } catch (e) {
@@ -178,12 +182,16 @@ class DatabaseHelper {
     }
     if (oldVersion < 6) {
       try {
-        // Check if workflow_stage column exists in notifications table
-        final columns = await db.rawQuery('PRAGMA table_info($tableNotifications)');
-        final hasWorkflowStage = columns.any((col) => col['name'] == 'workflow_stage');
+        final columns =
+        await db.rawQuery('PRAGMA table_info($tableNotifications)');
+        final hasWorkflowStage =
+        columns.any((col) => col['name'] == 'workflow_stage');
         if (!hasWorkflowStage) {
-          await db.execute('ALTER TABLE $tableNotifications ADD COLUMN workflow_stage TEXT');
-          debugPrint('DB: Added workflow_stage column to notifications table');
+          await db.execute(
+            'ALTER TABLE $tableNotifications ADD COLUMN workflow_stage TEXT',
+          );
+          debugPrint(
+              'DB: Added workflow_stage column to notifications table');
         }
       } catch (e) {
         debugPrint('DB: Error adding workflow_stage column: $e');
@@ -191,14 +199,32 @@ class DatabaseHelper {
     }
     if (oldVersion < 7) {
       try {
-        final columns = await db.rawQuery('PRAGMA table_info($tablePendingSubmissions)');
-        final hasEvidenceJson = columns.any((col) => col['name'] == 'evidence_json');
+        final columns = await db
+            .rawQuery('PRAGMA table_info($tablePendingSubmissions)');
+        final hasEvidenceJson =
+        columns.any((col) => col['name'] == 'evidence_json');
         if (!hasEvidenceJson) {
-          await db.execute('ALTER TABLE $tablePendingSubmissions ADD COLUMN evidence_json TEXT');
-          debugPrint('DB: Added evidence_json column to pending_submissions table');
+          await db.execute(
+            'ALTER TABLE $tablePendingSubmissions ADD COLUMN evidence_json TEXT',
+          );
+          debugPrint(
+              'DB: Added evidence_json column to pending_submissions table');
         }
       } catch (e) {
         debugPrint('DB: Error adding evidence_json column: $e');
+      }
+    }
+    if (oldVersion < 8) {
+      try {
+        // Clear all notifications so they are re-created fresh with
+        // currentStageCode stored in workflow_stage instead of currentStageName.
+        // This ensures the badge count logic (== 'SUBMIT_INSPECTION') works correctly.
+        await db.delete(tableNotifications);
+        debugPrint(
+            'DB: Cleared notifications for stage-code migration (v8)');
+      } catch (e) {
+        debugPrint(
+            'DB: Error clearing notifications on v8 upgrade: $e');
       }
     }
   }
@@ -211,35 +237,25 @@ class DatabaseHelper {
     final db = await database;
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    // Extract email (handle both root level and nested)
     String email = loginData['email']?.toString() ?? '';
-
-    // Extract token
     String token = loginData['token']?.toString() ?? '';
-
-    // Extract full name
     String fullName = loginData['fullName']?.toString() ??
         loginData['full_name']?.toString() ??
         '';
-
-    // Extract role
     String role = loginData['role']?.toString() ?? '';
 
-    // Extract council information from nested object
     String councilId = '';
     String councilName = '';
     String councilCode = '';
 
-    // Check if council is a nested object (from new API response)
     if (loginData['council'] != null && loginData['council'] is Map) {
       final council = loginData['council'] as Map;
       councilId = council['id']?.toString() ?? '';
       councilName = council['name']?.toString() ?? '';
       councilCode = council['code']?.toString() ?? '';
-      debugPrint('DB: Extracted council from nested object: id=$councilId, name=$councilName, code=$councilCode');
-    }
-    // Check if council fields are at root level (old format)
-    else {
+      debugPrint(
+          'DB: Extracted council from nested object: id=$councilId, name=$councilName, code=$councilCode');
+    } else {
       councilId = loginData['councilId']?.toString() ??
           loginData['council_id']?.toString() ??
           '';
@@ -251,7 +267,6 @@ class DatabaseHelper {
           '';
     }
 
-    // Extract department information
     String department = '';
     if (loginData['department'] != null && loginData['department'] is Map) {
       final departmentMap = loginData['department'] as Map;
@@ -260,7 +275,6 @@ class DatabaseHelper {
       department = loginData['department']?.toString() ?? '';
     }
 
-    // Extract portfolio if exists
     String portfolio = '';
     if (loginData['portfolio'] != null) {
       portfolio = loginData['portfolio'] is Map
@@ -283,7 +297,6 @@ class DatabaseHelper {
       'created_at': now,
     };
 
-    // Delete any existing sessions first (single user app)
     await db.delete(tableUsers);
     await db.insert(tableUsers, userData);
 
@@ -337,7 +350,6 @@ class DatabaseHelper {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     final batch = db.batch();
-    // Clear old assignments
     batch.delete(tableAssignments);
 
     for (final assignment in assignments) {
@@ -353,15 +365,20 @@ class DatabaseHelper {
           'created_at': assignment['createdAt']?.toString(),
           'expiry_date': assignment['expiryDate']?.toString(),
           'final_approved_fee': assignment['finalApprovedFee'] != null
-              ? double.tryParse(assignment['finalApprovedFee'].toString())
+              ? double.tryParse(
+              assignment['finalApprovedFee'].toString())
               : null,
           'issued_date': assignment['issuedDate']?.toString(),
           'owner_name': assignment['ownerName']?.toString() ?? '',
           'owner_type': assignment['ownerType']?.toString() ?? '',
-          'reference_number': assignment['referenceNumber']?.toString() ?? '',
-          'status': assignment['status']?.toString() ?? 'PENDING_INSPECTION',
-          'submitted_by_name': assignment['submittedByName']?.toString() ?? '',
-          'submitted_by_user_id': assignment['submittedByUserId']?.toString() ?? '',
+          'reference_number':
+          assignment['referenceNumber']?.toString() ?? '',
+          'status':
+          assignment['status']?.toString() ?? 'PENDING_INSPECTION',
+          'submitted_by_name':
+          assignment['submittedByName']?.toString() ?? '',
+          'submitted_by_user_id':
+          assignment['submittedByUserId']?.toString() ?? '',
           'type': assignment['type']?.toString() ?? 'NEW',
           'license_type_id': assignment['licenseTypeId']?.toString(),
           'raw_json': jsonEncode(assignment),
@@ -372,7 +389,8 @@ class DatabaseHelper {
     }
 
     await batch.commit(noResult: true);
-    debugPrint('DB: Saved ${assignments.length} assignments to local cache');
+    debugPrint(
+        'DB: Saved ${assignments.length} assignments to local cache');
   }
 
   Future<List<Map<String, dynamic>>> getCachedAssignments() async {
@@ -382,10 +400,10 @@ class DatabaseHelper {
         tableAssignments,
         orderBy: 'created_at DESC',
       );
-      // Return the raw_json parsed back so callers get the original structure
       return results.map((row) {
         try {
-          final json = jsonDecode(row['raw_json'] as String) as Map<String, dynamic>;
+          final json = jsonDecode(row['raw_json'] as String)
+          as Map<String, dynamic>;
           return json;
         } catch (_) {
           return row;
@@ -427,10 +445,12 @@ class DatabaseHelper {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    debugPrint('DB: Checklist cached for licenseTypeId=$licenseTypeId');
+    debugPrint(
+        'DB: Checklist cached for licenseTypeId=$licenseTypeId');
   }
 
-  Future<Map<String, dynamic>?> getCachedChecklist(String licenseTypeId) async {
+  Future<Map<String, dynamic>?> getCachedChecklist(
+      String licenseTypeId) async {
     try {
       final db = await database;
       final results = await db.query(
@@ -441,7 +461,8 @@ class DatabaseHelper {
       );
       if (results.isEmpty) return null;
       final row = results.first;
-      return jsonDecode(row['raw_json'] as String) as Map<String, dynamic>;
+      return jsonDecode(row['raw_json'] as String)
+      as Map<String, dynamic>;
     } catch (e) {
       debugPrint('DB: Error getting cached checklist: $e');
       return null;
@@ -452,7 +473,8 @@ class DatabaseHelper {
   // NOTIFICATION METHODS
   // ============================================================
 
-  Future<void> insertNotification(Map<String, dynamic> notification) async {
+  Future<void> insertNotification(
+      Map<String, dynamic> notification) async {
     final db = await database;
     await db.insert(
       tableNotifications,
@@ -481,10 +503,7 @@ class DatabaseHelper {
 
   Future<void> markAllNotificationsAsRead() async {
     final db = await database;
-    await db.update(
-      tableNotifications,
-      {'is_read': 1},
-    );
+    await db.update(tableNotifications, {'is_read': 1});
   }
 
   Future<void> deleteNotification(String id) async {
@@ -509,11 +528,12 @@ class DatabaseHelper {
     return (result.first['count'] as int?) ?? 0;
   }
 
-  /// Get count of pending inspection notifications only
+  /// Count of unread notifications where workflow_stage == 'SUBMIT_INSPECTION'
   Future<int> getPendingInspectionCount() async {
     final db = await database;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM $tableNotifications WHERE is_read = 0 AND (workflow_stage = "Pending Site Inspection " OR workflow_stage LIKE "%Pending Site Inspection%")',
+      'SELECT COUNT(*) as count FROM $tableNotifications '
+          "WHERE is_read = 0 AND workflow_stage = 'SUBMIT_INSPECTION'",
     );
     return (result.first['count'] as int?) ?? 0;
   }
@@ -544,7 +564,8 @@ class DatabaseHelper {
         'status': 'pending',
       },
     );
-    debugPrint('DB: Pending submission saved with id=$id for applicationId=$applicationId');
+    debugPrint(
+        'DB: Pending submission saved with id=$id for applicationId=$applicationId');
     return id;
   }
 
