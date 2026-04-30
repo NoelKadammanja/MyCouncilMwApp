@@ -9,6 +9,7 @@ import 'package:http_parser/http_parser.dart';
 
 class ApiService extends GetxService {
   static const String baseUrl = 'https://nico-customerportal.com';
+  static const String authenticate = '/api/v1/authenticate';
 
   // ─── Endpoints ────────────────────────────────────────────────────────────
   //get signed in inspector assignments

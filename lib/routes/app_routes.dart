@@ -2,7 +2,7 @@ import 'package:get/get.dart';
 import 'package:local_govt_mw/features/auth/domain/binding/login_binding.dart';
 import 'package:local_govt_mw/features/auth/domain/binding/otp_binding.dart';
 import 'package:local_govt_mw/features/auth/screens/login_screen.dart';
-import 'package:local_govt_mw/features/auth/screens/otp_screen.dart';
+// import 'package:local_govt_mw/features/auth/screens/otp_screen.dart';
 import 'package:local_govt_mw/features/home/domain/binding/homepage_binding.dart';
 import 'package:local_govt_mw/features/home/screens/homepage_screen.dart';
 // import 'package:local_govt_mw/features/onboarding/domain/binding/onboarding_binding.dart';
@@ -52,15 +52,6 @@ class AppRoutes {
         LoginBinding(),
       ],
     ),
-
-    GetPage(
-      name: otpScreen,
-      page: () => OtpScreen(),
-      bindings: [
-        OtpBinding(),
-      ],
-    ),
-
     GetPage(
       name: homepageScreen,
       page: () => HomepageScreen(),

@@ -1,8 +1,8 @@
 import 'package:get/get_connect/connect.dart';
-import 'package:local_govt_mw/client/api_constants.dart';
+import 'package:local_govt_mw/core/services/api_service.dart';
 
 class ApiClient extends GetConnect {
 	ApiClient() {
-		httpClient.baseUrl = ApiConstants.baseUrl;
+		httpClient.baseUrl = ApiService.baseUrl;
 	}
 }
