@@ -1,5 +1,5 @@
 name: local_govt_mw
-description: "A new Flutter project."
+description: "Local Govt of Malawi revenue collection and management app."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -23,16 +23,16 @@ dependencies:
   intl: ^0.20.2
   image_picker: ^1.0.7
   permission_handler: ^12.0.1
-  google_sign_in: ^7.2.0
-  wechat_assets_picker: ^9.1.2
+#  google_sign_in: ^7.2.0
+#  wechat_assets_picker: ^9.1.2
   sms_autofill: ^2.4.1
   pin_code_fields: ^8.0.1
-  slider_button: ^3.1.0
-  dotted_border: ^3.1.0
+#  slider_button: ^3.1.0
+#  dotted_border: ^3.1.0
   sqflite: ^2.3.0
   path: ^1.9.0
   url_launcher: ^6.3.2
-  vibration: ^3.1.6
+ #vibration: ^3.1.6
   http: ^1.2.0
   badges: ^3.1.2
   camera: ^0.10.5+5

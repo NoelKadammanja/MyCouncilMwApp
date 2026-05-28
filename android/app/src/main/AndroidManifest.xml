@@ -36,7 +36,7 @@
     <!-- ============================================ -->
 
     <application
-        android:label="Local Govt Mw"
+        android:label="Inspection App"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">
