@@ -275,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Center(
                             child: Text(
-                              "My Council App",
+                              "Inspection App",
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: _isKeyboardVisible ? 18 : 20,
