@@ -94,7 +94,7 @@ class _SplashScreenState extends State<SplashScreen>
               const SizedBox(height: 6),
 
               const Text(
-                "My Council App",
+                "Inspection App",
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,

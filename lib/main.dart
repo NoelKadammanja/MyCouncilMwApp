@@ -97,7 +97,7 @@ class MyApp extends StatelessWidget {
     splashController.startConnectivityListener(context);
 
     return GetMaterialApp(
-      title: 'My Council App',
+      title: 'Inspection App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
