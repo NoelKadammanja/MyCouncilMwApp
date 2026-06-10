@@ -8,7 +8,8 @@ import 'package:local_govt_mw/routes/app_routes.dart';
 import 'package:http_parser/http_parser.dart';
 
 class ApiService extends GetxService {
-  static const String baseUrl = 'https://api.councilrevenuesystem.mw';
+  // static const String baseUrl = 'https://api.councilrevenuesystem.mw';
+  static const String baseUrl = 'https://nico-customerportal.com';
   static const String authenticate = '/api/identity/login';
 
   // ─── Endpoints ────────────────────────────────────────────────────────────
