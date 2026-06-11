@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:local_govt_mw/core/services/api_service.dart';
+import 'package:local_govt_mw/core/services/branding_service.dart';
 import 'package:local_govt_mw/data/local/user_dao.dart';
 import 'package:local_govt_mw/routes/app_routes.dart';
 
@@ -26,6 +27,11 @@ class LoginController extends GetxController {
       debugPrint('LoginController: auto-login from stored session');
       if (!Get.isRegistered<ApiService>()) {
         Get.put<ApiService>(ApiService(), permanent: true);
+      }
+      // Branding is already triggered in main.dart for the auto-login path,
+      // but call it here too in case this method is invoked from elsewhere.
+      if (Get.isRegistered<BrandingService>()) {
+        Get.find<BrandingService>().loadBranding();
       }
       return true;
     }
@@ -128,15 +134,22 @@ class LoginController extends GetxController {
       enriched['email'] = identifier;
     }
 
-    // Persist session to SQLite
+    // Persist session to SQLite — council_code is stored here, which
+    // BrandingService will read via UserDao.getCouncilCode().
     final userDao = UserDao();
     await userDao.saveUser(enriched);
     debugPrint(
         'LOGIN: session persisted. Token=${token.substring(0, 10)}...');
 
-    // Register ApiService if not already
+    // Register ApiService if not already present
     if (!Get.isRegistered<ApiService>()) {
       Get.put<ApiService>(ApiService(), permanent: true);
+    }
+
+    // Trigger branding fetch now that the session (and council code) is saved
+    if (Get.isRegistered<BrandingService>()) {
+      Get.find<BrandingService>().loadBranding();
+      debugPrint('LOGIN: BrandingService.loadBranding() triggered');
     }
 
     final String fullName =
@@ -195,6 +208,13 @@ class LoginController extends GetxController {
   Future<void> logout() async {
     final userDao = UserDao();
     await userDao.clearUser();
+
+    // Clear cached branding so a different council's logo/colour does not
+    // bleed into the next login session.
+    if (Get.isRegistered<BrandingService>()) {
+      Get.find<BrandingService>().clear();
+      debugPrint('LOGIN: BrandingService cleared on logout');
+    }
 
     if (Get.isRegistered<ApiService>()) {
       Get.delete<ApiService>();
