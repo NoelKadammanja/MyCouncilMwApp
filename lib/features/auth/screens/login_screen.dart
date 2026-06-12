@@ -359,22 +359,22 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: 10),
+                          // const SizedBox(height: 10),
 
                           // ── Forgot password ─────────────────────
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: GestureDetector(
-                              onTap: _showForgotPasswordDialog,
-                              child: const Text(
-                                'Forgot Password?',
-                                style: TextStyle(
-                                  color: kAccentGold,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ),
+                          // Align(
+                          //   alignment: Alignment.centerRight,
+                          //   child: GestureDetector(
+                          //     onTap: _showForgotPasswordDialog,
+                          //     child: const Text(
+                          //       'Forgot Password?',
+                          //       style: TextStyle(
+                          //         color: kAccentGold,
+                          //         fontWeight: FontWeight.w800,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
 
                           const SizedBox(height: 18),
 
@@ -460,6 +460,28 @@ class _LoginScreenState extends State<LoginScreen> {
                             const Center(
                               child: Text(
                                 'Secure access • Transparency • Accountability',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: kTextMuted,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (!_isKeyboardVisible) ...[
+                            const SizedBox(height: 14),
+                            Center(
+                              child: Image.asset(
+                                'assets/images/mglogo.png',
+                                height: 52,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            const Center(
+                              child: Text(
+                                'Powered by NICO Technologies Ltd',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 12,
